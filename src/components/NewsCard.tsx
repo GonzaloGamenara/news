@@ -20,13 +20,27 @@ function relativeTime(timestamp: number): string {
 
 type Props = {
   article: ScoredArticle;
+  /** Texto a mostrar: puede venir traducido, por eso no se lee de `article`. */
+  title: string;
+  summary: string;
   reaction: 1 | -1 | undefined;
+  /** Ya la abriste alguna vez. La marcamos, pero no la escondemos. */
+  seen: boolean;
   hero: boolean;
   onReact: (article: ScoredArticle, liked: boolean) => void;
   onOpen: (article: ScoredArticle) => void;
 };
 
-function NewsCardImpl({ article, reaction, hero, onReact, onOpen }: Props) {
+function NewsCardImpl({
+  article,
+  title,
+  summary,
+  reaction,
+  seen,
+  hero,
+  onReact,
+  onOpen,
+}: Props) {
   const [imageFailed, setImageFailed] = useState(false);
   const accent = CATEGORY_MAP.get(article.category)?.accent ?? "265 85% 60%";
 
@@ -48,7 +62,6 @@ function NewsCardImpl({ article, reaction, hero, onReact, onOpen }: Props) {
 
   return (
     <motion.article
-      layout="position"
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.18 } }}
@@ -125,6 +138,7 @@ function NewsCardImpl({ article, reaction, hero, onReact, onOpen }: Props) {
               <span className="text-fg-muted" suppressHydrationWarning>
                 {relativeTime(article.publishedAt)}
               </span>
+              {seen && <span className="text-fg-muted">· leída</span>}
               {article.reasons.length > 0 && (
                 <span
                   className="ml-auto text-fg-muted"
@@ -137,13 +151,17 @@ function NewsCardImpl({ article, reaction, hero, onReact, onOpen }: Props) {
               )}
             </div>
 
-            <h2 className={`font-semibold leading-snug ${hero ? "text-xl" : "text-base"}`}>
-              {article.title}
+            <h2
+              className={`font-semibold leading-snug ${hero ? "text-xl" : "text-base"} ${
+                seen ? "text-fg-muted" : ""
+              }`}
+            >
+              {title}
             </h2>
 
-            {article.summary && (
+            {summary && (
               <p className="line-clamp-3-safe text-sm leading-relaxed text-fg-muted">
-                {article.summary}
+                {summary}
               </p>
             )}
           </div>

@@ -1,4 +1,4 @@
-export type CategoryId =
+﻿export type CategoryId =
   | "para-vos"
   | "cine"
   | "videojuegos"
@@ -6,6 +6,11 @@ export type CategoryId =
   | "libros"
   | "tecnologia"
   | "ciencia";
+
+export type Lang = "es" | "en";
+
+/** Qué idiomas mostrar en el feed. */
+export type LangFilter = "todo" | "es" | "en";
 
 export type Category = {
   id: CategoryId;
@@ -20,7 +25,7 @@ export type Source = {
   name: string;
   url: string;
   category: Exclude<CategoryId, "para-vos">;
-  lang: "es" | "en";
+  lang: Lang;
   /**
    * Para feeds generalistas (ej: "Espectáculos" de un diario) que solo deben
    * aportar notas a la categoría si el título/resumen matchea.
@@ -39,8 +44,35 @@ export type Article = {
   sourceId: string;
   sourceName: string;
   category: Exclude<CategoryId, "para-vos">;
-  lang: "es" | "en";
+  lang: Lang;
 };
+
+/**
+ * `unsupported`: el dominio no está en la allowlist del lector.
+ * `too-short`:   la extracción trajo un teaser o hay muro de pago.
+ * `failed`:      el sitio no respondió o no se pudo parsear.
+ * `invalid`:     falta la URL o está mal formada.
+ */
+export type ArticleFailure = "unsupported" | "too-short" | "failed" | "invalid";
+
+/** Respuesta del lector in-app. */
+export type ArticleContent =
+  | {
+      ok: true;
+      title: string;
+      byline: string | null;
+      siteName: string | null;
+      /** HTML ya saneado: seguro para dangerouslySetInnerHTML. */
+      html: string;
+      minutes: number;
+    }
+  | { ok: false; reason: ArticleFailure };
+
+/** Estado del lector para una nota. */
+export type ReaderState =
+  | { phase: "loading" }
+  | { phase: "ready"; content: Extract<ArticleContent, { ok: true }> }
+  | { phase: "error"; reason: ArticleFailure };
 
 export type FeedResponse = {
   articles: Article[];

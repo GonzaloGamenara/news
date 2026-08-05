@@ -36,6 +36,9 @@ export const SOURCES: Source[] = [
   { id: "espinof", name: "Espinof", url: "https://www.espinof.com/feedburner.xml", category: "cine", lang: "es" },
   { id: "sensacine", name: "SensaCine", url: "https://www.sensacine.com/rss/noticias.xml", category: "cine", lang: "es" },
   { id: "lanacion-esp", name: "La Nación", url: "https://www.lanacion.com.ar/arc/outboundfeeds/rss/category/espectaculos/?outputType=xml", category: "cine", lang: "es" },
+  { id: "fotogramas", name: "Fotogramas", url: "https://www.fotogramas.es/rss/all.xml", category: "cine", lang: "es" },
+  { id: "cinemania", name: "Cinemanía", url: "https://www.20minutos.es/rss/cinemania/", category: "cine", lang: "es" },
+  { id: "infobae-teleshow", name: "Infobae Teleshow", url: "https://www.infobae.com/arc/outboundfeeds/rss/category/teleshow/?outputType=xml", category: "cine", lang: "es" },
 
   // ---------- VIDEOJUEGOS ----------
   { id: "ign", name: "IGN", url: "https://feeds.ign.com/ign/games-all", category: "videojuegos", lang: "en" },
@@ -53,6 +56,13 @@ export const SOURCES: Source[] = [
   { id: "destructoid", name: "Destructoid", url: "https://www.destructoid.com/feed/", category: "videojuegos", lang: "en" },
   { id: "gamedeveloper", name: "Game Developer", url: "https://www.gamedeveloper.com/rss.xml", category: "videojuegos", lang: "en" },
   { id: "guardian-games", name: "The Guardian Games", url: "https://www.theguardian.com/games/rss", category: "videojuegos", lang: "en" },
+  { id: "vandal", name: "Vandal", url: "https://vandal.elespanol.com/rss/", category: "videojuegos", lang: "es" },
+  { id: "meristation", name: "MeriStation", url: "https://as.com/rss/meristation/portada.xml", category: "videojuegos", lang: "es" },
+  { id: "eurogamer-es", name: "Eurogamer España", url: "https://www.eurogamer.es/feed", category: "videojuegos", lang: "es" },
+  // AnaitGames queda afuera a propósito: su RSS tarda ~12 s de forma constante
+  // y nunca llegaría al deadline de fetchAll, costando la espera completa en
+  // cada request. Si alguna vez se pone rápido, se vuelve a agregar acá.
+  { id: "nintenderos", name: "Nintenderos", url: "https://www.nintenderos.com/feed/", category: "videojuegos", lang: "es" },
 
   // ---------- TEATRO ----------
   // Es la categoría con menos RSS decentes, sobre todo en Argentina: por eso se
@@ -66,6 +76,8 @@ export const SOURCES: Source[] = [
   { id: "lanacion-teatro", name: "La Nación Teatro", url: "https://www.lanacion.com.ar/arc/outboundfeeds/rss/category/espectaculos/teatro/?outputType=xml", category: "teatro", lang: "es" },
   { id: "clarin-esp", name: "Clarín", url: "https://www.clarin.com/rss/espectaculos/", category: "teatro", lang: "es", match: TEATRO_MATCH },
   { id: "elpais-cultura", name: "El País Cultura", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/cultura/portada", category: "teatro", lang: "es", match: TEATRO_MATCH },
+  { id: "infobae-cultura-teatro", name: "Infobae Cultura", url: "https://www.infobae.com/arc/outboundfeeds/rss/category/cultura/?outputType=xml", category: "teatro", lang: "es", match: TEATRO_MATCH },
+  { id: "20min-cultura", name: "20minutos Cultura", url: "https://www.20minutos.es/rss/cultura/", category: "teatro", lang: "es", match: TEATRO_MATCH },
 
   // ---------- LIBROS ----------
   { id: "guardian-books", name: "The Guardian Books", url: "https://www.theguardian.com/books/rss", category: "libros", lang: "en" },
@@ -76,6 +88,9 @@ export const SOURCES: Source[] = [
   { id: "zenda", name: "Zenda Libros", url: "https://www.zendalibros.com/feed/", category: "libros", lang: "es" },
   { id: "babelia", name: "Babelia", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/babelia/portada", category: "libros", lang: "es" },
   { id: "infobae-cultura", name: "Infobae Cultura", url: "https://www.infobae.com/arc/outboundfeeds/rss/category/cultura/?outputType=xml", category: "libros", lang: "es" },
+  { id: "letraslibres", name: "Letras Libres", url: "https://letraslibres.com/feed/", category: "libros", lang: "es" },
+  { id: "anfibia", name: "Revista Anfibia", url: "https://www.revistaanfibia.com/feed/", category: "libros", lang: "es" },
+  { id: "lecturalia", name: "Lecturalia", url: "https://www.lecturalia.com/blog/feed/", category: "libros", lang: "es" },
 
   // ---------- TECNOLOGÍA ----------
   { id: "verge", name: "The Verge", url: "https://www.theverge.com/rss/index.xml", category: "tecnologia", lang: "en" },
@@ -87,6 +102,13 @@ export const SOURCES: Source[] = [
   { id: "guardian-tech", name: "The Guardian Tech", url: "https://www.theguardian.com/uk/technology/rss", category: "tecnologia", lang: "en" },
   { id: "xataka", name: "Xataka", url: "https://www.xataka.com/feedburner.xml", category: "tecnologia", lang: "es" },
   { id: "genbeta", name: "Genbeta", url: "https://www.genbeta.com/feedburner.xml", category: "tecnologia", lang: "es" },
+  { id: "hipertextual", name: "Hipertextual", url: "https://hipertextual.com/feed", category: "tecnologia", lang: "es" },
+  { id: "microsiervos", name: "Microsiervos", url: "https://www.microsiervos.com/index.xml", category: "tecnologia", lang: "es" },
+  { id: "applesfera", name: "Applesfera", url: "https://www.applesfera.com/feedburner.xml", category: "tecnologia", lang: "es" },
+  { id: "xatakamovil", name: "Xataka Móvil", url: "https://www.xatakamovil.com/feedburner.xml", category: "tecnologia", lang: "es" },
+  { id: "fayerwayer", name: "FayerWayer", url: "https://www.fayerwayer.com/feed/", category: "tecnologia", lang: "es" },
+  { id: "infobae-tecno", name: "Infobae Tecno", url: "https://www.infobae.com/arc/outboundfeeds/rss/category/tecno/?outputType=xml", category: "tecnologia", lang: "es" },
+  { id: "elpais-tecno", name: "El País Tecnología", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/tecnologia/portada", category: "tecnologia", lang: "es" },
 
   // ---------- CIENCIA ----------
   { id: "quanta", name: "Quanta Magazine", url: "https://api.quantamagazine.org/feed/", category: "ciencia", lang: "en" },
@@ -96,6 +118,11 @@ export const SOURCES: Source[] = [
   { id: "phys", name: "Phys.org", url: "https://phys.org/rss-feed/", category: "ciencia", lang: "en" },
   { id: "guardian-science", name: "The Guardian Science", url: "https://www.theguardian.com/science/rss", category: "ciencia", lang: "en" },
   { id: "elpais-ciencia", name: "El País Ciencia", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/ciencia/portada", category: "ciencia", lang: "es" },
+  { id: "bbc-mundo-ciencia", name: "BBC Mundo Ciencia", url: "https://feeds.bbci.co.uk/mundo/topics/cyd7dvd3e5nt/rss.xml", category: "ciencia", lang: "es" },
+  { id: "naukas", name: "Naukas", url: "https://naukas.com/feed/", category: "ciencia", lang: "es" },
+  { id: "eureka", name: "Eureka", url: "https://danielmarin.naukas.com/feed/", category: "ciencia", lang: "es" },
+  { id: "muyinteresante", name: "Muy Interesante", url: "https://www.muyinteresante.com/feed/", category: "ciencia", lang: "es" },
+  { id: "elpais-salud", name: "El País Salud", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/salud-y-bienestar/portada", category: "ciencia", lang: "es" },
 ];
 
 export const SOURCE_MAP = new Map(SOURCES.map((s) => [s.id, s]));

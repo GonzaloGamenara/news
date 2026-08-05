@@ -4,7 +4,9 @@ import { useCallback, useSyncExternalStore } from "react";
 import { decay, emptyProfile, learn, prune, unlearn, type Profile } from "./ranking";
 import type { Article } from "./types";
 
-const KEY = "news.profile.v1";
+// v2: las reacciones pasaron de `1 | -1` a `{ vote, at }` para poder distinguir
+// lo que votaste recién de lo que votaste en una sesión anterior.
+const KEY = "news.profile.v2";
 
 /**
  * El perfil vive en un store externo (no en useState) por dos razones:
@@ -78,7 +80,7 @@ export function useProfile() {
     const current = getSnapshot();
     // Tocar el mismo botón dos veces deshace el voto y revierte el aprendizaje.
     update(
-      current.reactions[article.id] === (liked ? 1 : -1)
+      current.reactions[article.id]?.vote === (liked ? 1 : -1)
         ? unlearn(current, article)
         : learn(current, article, liked),
     );

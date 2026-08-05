@@ -144,7 +144,7 @@ function toArticle(raw: Record<string, unknown>, source: Source): Article | null
 
 export async function fetchSource(
   source: Source,
-  timeoutMs = 8000,
+  timeoutMs = 6000,
 ): Promise<Article[]> {
   const res = await fetch(source.url, {
     headers: {
@@ -176,19 +176,50 @@ export async function fetchSource(
 }
 
 /**
- * Trae todas las fuentes en paralelo. Una fuente caída nunca tumba el feed:
- * se acumula en `failed` y la app sigue mostrando el resto.
+ * Cuánto esperamos como máximo por el conjunto de fuentes.
+ *
+ * Con `Promise.allSettled` a secas, una sola fuente lenta define la latencia de
+ * todo el feed: si tarda 8 s, la respuesta tarda 8 s aunque las otras sesenta
+ * hayan contestado en 400 ms. Con un deadline devolvemos lo que llegó y el
+ * resto queda para la próxima.
+ */
+const DEADLINE_MS = 4000;
+
+/**
+ * Trae todas las fuentes en paralelo. Una fuente caída o lenta nunca tumba ni
+ * demora el feed: se acumula en `failed` y la app muestra el resto.
  */
 export async function fetchAll(
   sources: Source[],
+  deadlineMs = DEADLINE_MS,
 ): Promise<{ articles: Article[]; failed: string[]; fetchedAt: number }> {
-  const settled = await Promise.allSettled(sources.map((s) => fetchSource(s)));
+  const collected: (Article[] | null)[] = sources.map(() => null);
+
+  const tasks = sources.map((source, i) =>
+    fetchSource(source)
+      .then((articles) => {
+        collected[i] = articles;
+      })
+      .catch(() => {
+        // Fuente caída: queda en null y se reporta abajo.
+      }),
+  );
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  await Promise.race([
+    Promise.all(tasks),
+    new Promise((resolve) => {
+      timer = setTimeout(resolve, deadlineMs);
+    }),
+  ]);
+  // Sin esto el timer mantiene vivo el event loop hasta que dispare.
+  clearTimeout(timer);
 
   const articles: Article[] = [];
   const failed: string[] = [];
 
-  settled.forEach((r, i) => {
-    if (r.status === "fulfilled") articles.push(...r.value);
+  collected.forEach((result, i) => {
+    if (result) articles.push(...result);
     else failed.push(sources[i].id);
   });
 

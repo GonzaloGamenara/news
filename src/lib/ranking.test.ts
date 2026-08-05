@@ -103,6 +103,14 @@ describe("aprendizaje", () => {
     }
   });
 
+  it("registra cuándo votaste, no solo qué votaste", () => {
+    const a = article();
+    const profile = learn(emptyProfile(), a, true);
+
+    expect(profile.reactions[a.id].vote).toBe(1);
+    expect(profile.reactions[a.id].at).toBeGreaterThan(0);
+  });
+
   it("deshacer un voto lo saca del registro y revierte el aprendizaje", () => {
     const a = article();
     const liked = learn(emptyProfile(), a, true);
@@ -184,14 +192,60 @@ describe("ranking", () => {
     expect(visible([odiado, resto], profile).map((a) => a.id)).toEqual(["resto"]);
   });
 
-  it("degrada lo ya leído sin ocultarlo", () => {
+  it("un 👍 no esconde nada", () => {
+    const querido = article({ id: "querido" });
+    const profile = learn(emptyProfile(), querido, true);
+
+    expect(visible([querido], profile)).toHaveLength(1);
+  });
+
+  it("degrada lo leído en sesiones anteriores sin ocultarlo", () => {
     const leido = article({ id: "leido" });
     const nuevo = article({ id: "nuevo", publishedAt: NOW - 2 * HOUR });
 
-    const profile: Profile = { ...emptyProfile(), seen: { leido: NOW } };
+    // Leído ANTES de este fetch.
+    const profile: Profile = { ...emptyProfile(), seen: { leido: NOW - HOUR } };
     const ranked = score([leido, nuevo], profile, 1, NOW);
 
     expect(ranked.map((a) => a.id)).toEqual(["nuevo", "leido"]);
+  });
+
+  it("NO mueve una nota que abriste durante esta sesión", () => {
+    // El caso que importa: tocás una nota, el sitio no carga, volvés — y la
+    // nota tiene que seguir donde estaba, no haberse hundido bajo tus pies.
+    const tocada = article({ id: "tocada", publishedAt: NOW - HOUR });
+    const otra = article({ id: "otra", publishedAt: NOW - 2 * HOUR });
+
+    const antes = score([tocada, otra], emptyProfile(), 1, NOW);
+
+    const despues = score(
+      [tocada, otra],
+      // seen DESPUÉS del fetch: la abriste recién.
+      { ...emptyProfile(), seen: { tocada: NOW + 5 * 60_000 } },
+      1,
+      NOW,
+    );
+
+    expect(despues.map((a) => a.id)).toEqual(antes.map((a) => a.id));
+    expect(despues[0].score).toBeCloseTo(antes[0].score, 10);
+  });
+
+  it("tampoco mueve una nota que acabás de votar 👍", () => {
+    const votada = article({ id: "votada", publishedAt: NOW - HOUR });
+    const otra = article({ id: "otra", publishedAt: NOW - 2 * HOUR });
+
+    const reciente: Profile = {
+      ...emptyProfile(),
+      reactions: { votada: { vote: 1, at: NOW + 60_000 } },
+    };
+    const vieja: Profile = {
+      ...emptyProfile(),
+      reactions: { votada: { vote: 1, at: NOW - 60_000 } },
+    };
+
+    expect(score([votada, otra], reciente, 1, NOW)[0].id).toBe("votada");
+    // La misma nota votada en una sesión previa sí cede el lugar.
+    expect(score([votada, otra], vieja, 1, NOW)[0].id).toBe("otra");
   });
 
   it("explica por qué subió una nota", () => {

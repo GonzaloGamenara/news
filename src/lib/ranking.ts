@@ -46,13 +46,16 @@ const MAX_REACTIONS = 2000;
 
 export type Weights = Record<string, number>;
 
+/** El `at` importa: sin él no podríamos distinguir un voto de hace un rato de
+ *  uno de recién, y una nota que tocás ahora se hundiría bajo tus pies. */
+export type Reaction = { vote: 1 | -1; at: number };
+
 export type Profile = {
   weights: Weights;
   /** Cantidad total de votos emitidos. */
   votes: number;
-  /** articleId -> 1 (me gusta) | -1 (no me gusta) */
-  reactions: Record<string, 1 | -1>;
-  /** articleId -> timestamp en que se abrió/vio. */
+  reactions: Record<string, Reaction>;
+  /** articleId -> timestamp en que se abrió/leyó. */
   seen: Record<string, number>;
   updatedAt: number;
 };
@@ -122,7 +125,10 @@ export function learn(
     ...profile,
     weights,
     votes: profile.votes + 1,
-    reactions: { ...profile.reactions, [article.id]: liked ? 1 : -1 },
+    reactions: {
+      ...profile.reactions,
+      [article.id]: { vote: liked ? 1 : -1, at: Date.now() },
+    },
     updatedAt: Date.now(),
   };
 }
@@ -132,7 +138,7 @@ export function unlearn(profile: Profile, article: Article): Profile {
   const previous = profile.reactions[article.id];
   if (!previous) return profile;
 
-  const reverted = learn(profile, article, previous === -1);
+  const reverted = learn(profile, article, previous.vote === -1);
   const reactions = { ...reverted.reactions };
   delete reactions[article.id];
 
@@ -256,10 +262,17 @@ export function score(
       wFresh * freshness(article.publishedAt, now) +
       EXPLORATION * jitter(article.id, salt);
 
-    // Ya lo viste: no lo escondemos, lo mandamos abajo.
-    if (profile.seen[article.id]) s *= 0.4;
-    // Le diste 👍: queda como referencia pero no compite por el top.
-    if (profile.reactions[article.id] === 1) s *= 0.5;
+    // Solo penalizamos lo que tocaste ANTES de este fetch.
+    //
+    // Si abrís una nota y volvés, tiene que seguir donde estaba: quizá el sitio
+    // no cargó, quizá quedaste sin señal. Que se hunda apenas la tocás es peor
+    // que verla dos veces — la perdés para siempre sin haberla leído.
+    const seenAt = profile.seen[article.id];
+    if (seenAt !== undefined && seenAt < now) s *= 0.4;
+
+    // Lo mismo para el 👍: baja recién en la próxima carga del feed.
+    const reaction = profile.reactions[article.id];
+    if (reaction?.vote === 1 && reaction.at < now) s *= 0.6;
 
     return { ...article, score: s, affinity: a, reasons };
   });
@@ -305,7 +318,7 @@ function diversify(sorted: ScoredArticle[]): ScoredArticle[] {
 
 /** Artículos con 👎 no se muestran nunca más. */
 export function visible(articles: Article[], profile: Profile): Article[] {
-  return articles.filter((a) => profile.reactions[a.id] !== -1);
+  return articles.filter((a) => profile.reactions[a.id]?.vote !== -1);
 }
 
 // ------------------------------------------------- introspección del perfil
