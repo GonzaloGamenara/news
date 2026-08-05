@@ -3,80 +3,49 @@
 import { useSyncExternalStore } from "react";
 
 /**
- * Traducción inglés → español en el dispositivo, con la Translator API de
- * Chrome (138+). No hay API key, no hay costo y el texto no sale del teléfono.
+ * Traducción inglés → español, resuelta por /api/translate.
  *
- * Es una mejora progresiva: donde el navegador no la soporta, la app funciona
- * igual y la opción no se ofrece. La primera vez Chrome baja un paquete de
- * idioma (~30 MB), y por eso `create()` exige un gesto del usuario: se llama
- * desde el click del toggle, nunca sola.
+ * Se hace en el servidor a propósito: en iOS toda PWA corre sobre WebKit
+ * (incluso la que instalás "desde Chrome"), así que la Translator API on-device
+ * de Chrome no existe ahí. Del lado del servidor anda en cualquier teléfono.
  */
 
-type TranslatorInstance = {
-  translate: (input: string) => Promise<string>;
-};
+const KEY = "news.translations.v1";
+const BATCH = 20;
 
-type TranslatorFactory = {
-  availability: (opts: {
-    sourceLanguage: string;
-    targetLanguage: string;
-  }) => Promise<"unavailable" | "downloadable" | "downloading" | "available">;
-  create: (opts: {
-    sourceLanguage: string;
-    targetLanguage: string;
-    monitor?: (m: EventTarget) => void;
-  }) => Promise<TranslatorInstance>;
-};
+// Cache: el mismo título aparece al re-rankear, al paginar y al volver de otra
+// categoría. Se persiste para que abrir la app dos veces no retraduzca todo.
+const cache = new Map<string, string>();
+let loaded = false;
 
-export type TranslateStatus =
-  | "unsupported"
-  | "unavailable"
-  | "downloadable"
-  | "downloading"
-  | "ready";
-
-function factory(): TranslatorFactory | null {
-  if (typeof self === "undefined") return null;
-  const t = (self as unknown as { Translator?: TranslatorFactory }).Translator;
-  return t && typeof t.create === "function" ? t : null;
-}
-
-export function isSupported(): boolean {
-  return factory() !== null;
-}
-
-export async function status(): Promise<TranslateStatus> {
-  const t = factory();
-  if (!t) return "unsupported";
+function load() {
+  if (loaded) return;
+  loaded = true;
   try {
-    const availability = await t.availability({ sourceLanguage: "en", targetLanguage: "es" });
-    return availability === "available" ? "ready" : availability;
+    const raw = window.localStorage.getItem(KEY);
+    if (raw) for (const [k, v] of JSON.parse(raw) as [string, string][]) cache.set(k, v);
   } catch {
-    return "unavailable";
+    // Storage corrupto: arrancamos sin cache, no es grave.
   }
 }
 
-let instance: Promise<TranslatorInstance | null> | null = null;
+let saveTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Se crea una sola vez y se reusa: instanciar el modelo es caro. */
-function translator(): Promise<TranslatorInstance | null> {
-  const t = factory();
-  if (!t) return Promise.resolve(null);
-
-  instance ??= t
-    .create({ sourceLanguage: "en", targetLanguage: "es" })
-    .catch(() => null);
-
-  return instance;
+function save() {
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      // Nos quedamos con las últimas 1500: alcanza de sobra y no infla el storage.
+      const entries = [...cache.entries()].slice(-1500);
+      window.localStorage.setItem(KEY, JSON.stringify(entries));
+    } catch {
+      // Sin persistencia sigue funcionando en memoria.
+    }
+  }, 1000);
 }
 
-// Cache global: el mismo título aparece al re-rankear, al paginar y al volver
-// de otra categoría. Traducir dos veces lo mismo es puro gasto de batería.
-const cache = new Map<string, string>();
-
-// Las traducciones llegan de a poco y de forma asíncrona. En vez de mantener
-// estado en cada tarjeta, publicamos un contador: cuando sube, React repinta
-// y cada tarjeta lee del cache lo que haya.
+// Las traducciones llegan de a tandas. En vez de estado en cada tarjeta,
+// publicamos un contador: cuando sube, React repinta y cada tarjeta lee del cache.
 let version = 0;
 const listeners = new Set<() => void>();
 
@@ -85,7 +54,6 @@ const subscribe = (listener: () => void) => {
   return () => listeners.delete(listener);
 };
 
-/** Se suscribe a las traducciones nuevas. Devuelve un número que solo crece. */
 export function useTranslationVersion(): number {
   return useSyncExternalStore(
     subscribe,
@@ -101,16 +69,16 @@ function publish() {
 
 /** Traducción ya disponible para este texto, si la hay. */
 export function cached(text: string): string | undefined {
+  load();
   return cache.get(text);
 }
 
-// Cola de trabajo. El modelo corre en el dispositivo: mandarle 200 títulos en
-// paralelo traba la interfaz, así que hay un solo worker que va drenando.
 const queue = new Set<string>();
 let running = false;
 
 /** Encola los textos que falten y arranca el worker si no está corriendo. */
 export function translateAll(texts: string[]): void {
+  load();
   for (const text of texts) {
     if (text.trim() !== "" && !cache.has(text)) queue.add(text);
   }
@@ -118,38 +86,32 @@ export function translateAll(texts: string[]): void {
 }
 
 async function drain(): Promise<void> {
-  const engine = await translator();
-  if (!engine) {
-    queue.clear();
-    return;
-  }
-
   running = true;
   try {
-    let sinceLastPublish = 0;
-
-    // Se relee la cola en cada vuelta: si mientras traducimos scrolleás y
-    // entran títulos nuevos, entran acá sin arrancar un segundo worker.
+    // Se relee la cola en cada vuelta: si scrolleás mientras traduce, los
+    // títulos nuevos entran acá sin arrancar un segundo worker.
     while (queue.size > 0) {
-      const text = queue.values().next().value as string;
-      queue.delete(text);
-      if (cache.has(text)) continue;
+      const batch = [...queue].slice(0, BATCH);
+      for (const text of batch) queue.delete(text);
 
       try {
-        cache.set(text, await engine.translate(text));
+        const res = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ texts: batch }),
+        });
+        const { translations } = (await res.json()) as { translations: string[] };
+        batch.forEach((text, i) => cache.set(text, translations[i] ?? text));
       } catch {
-        // Un texto que falla no debe frenar al resto: lo dejamos en su idioma.
-        cache.set(text, text);
+        // Sin red: los dejamos en inglés y no reintentamos en bucle.
+        for (const text of batch) cache.set(text, text);
       }
 
-      // Repintar en cada texto haría 200 renders; de a 6 se ve fluido igual.
-      if (++sinceLastPublish >= 6) {
-        sinceLastPublish = 0;
-        publish();
-      }
+      publish();
     }
   } finally {
     running = false;
+    save();
     publish();
   }
 }
@@ -157,5 +119,10 @@ async function drain(): Promise<void> {
 export function clearCache(): void {
   cache.clear();
   queue.clear();
+  try {
+    window.localStorage.removeItem(KEY);
+  } catch {
+    // Nada que hacer.
+  }
   publish();
 }

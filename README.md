@@ -1,10 +1,10 @@
-# Titular
+﻿# Titular
 
 PWA de noticias mobile-first: cine y series, videojuegos, teatro, libros, tecnología y
 ciencia. Se instala en el teléfono, abre offline y ordena el feed según lo que te gusta.
 
 Las notas se leen **adentro de la app**, sin saltar al sitio de cada medio. Podés filtrar
-por idioma o traducir al español lo que esté en inglés, todo en el dispositivo.
+por idioma o traducir al español lo que esté en inglés.
 
 Toda la personalización corre y se guarda **en tu dispositivo**. No hay cuentas, no hay
 base de datos, no sale nada a ningún lado.
@@ -118,10 +118,15 @@ Si una nota tiene muro de pago o no se puede extraer, el lector lo dice y ofrece
 ## Idioma
 
 El botón `ES/EN` del header filtra el feed por idioma. La opción **Traducir al español**
-usa la [Translator API](https://developer.chrome.com/docs/ai/translator-api) de Chrome:
-el modelo corre en el dispositivo, sin API key, sin costo y sin que el texto salga del
-teléfono. La primera vez Chrome baja un paquete de idioma. Donde el navegador no la
-soporta, la opción aparece deshabilitada y explica por qué.
+traduce títulos y resúmenes vía [`/api/translate`](src/app/api/translate/route.ts).
+
+Se hace en el servidor a propósito. La Translator API on-device de Chrome parecía la
+opción elegante, pero **en iOS toda PWA corre sobre WebKit** —incluso la que instalás
+"desde Chrome"—, así que ahí no existe. Del lado del servidor anda en cualquier teléfono.
+
+Las traducciones se cachean en el CDN (una semana) y en `localStorage`, así que el mismo
+título no se traduce dos veces. Si el servicio falla, se muestran los originales en
+inglés en vez de dejar la tarjeta en blanco.
 
 ## Fuentes
 
@@ -151,7 +156,7 @@ src/lib/sources.ts            Catálogo de fuentes
 src/lib/ranking.ts            El algoritmo
 src/lib/reader.ts             Allowlist de dominios del lector
 src/lib/sanitize.ts           Saneado del HTML de terceros
-src/lib/translate.ts          Traducción on-device
+src/lib/translate.ts          Cliente de traducción + cache
 src/lib/useProfile.ts         Perfil en localStorage (useSyncExternalStore)
 src/lib/usePrefs.ts           Idioma y traducción
 src/components/               UI
