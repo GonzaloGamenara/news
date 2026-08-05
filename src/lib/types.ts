@@ -74,6 +74,14 @@ export type ReaderState =
   | { phase: "ready"; content: Extract<ArticleContent, { ok: true }> }
   | { phase: "error"; reason: ArticleFailure };
 
+/** Lo que se guarda en Supabase por dispositivo. */
+export type SyncPayload = {
+  profile: unknown;
+  prefs: unknown;
+  /** Reloj del cliente: gana la escritura más nueva. */
+  updatedAt: number;
+};
+
 export type FeedResponse = {
   articles: Article[];
   fetchedAt: number;

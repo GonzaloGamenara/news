@@ -30,6 +30,8 @@ type Props = {
   /** Modo ahorro: sin imágenes. */
   saveData: boolean;
   hero: boolean;
+  /** Posición en la página actual, para escalonar la entrada. */
+  index: number;
   onReact: (article: ScoredArticle, liked: boolean) => void;
   onOpen: (article: ScoredArticle) => void;
 };
@@ -42,6 +44,7 @@ function NewsCardImpl({
   seen,
   saveData,
   hero,
+  index,
   onReact,
   onOpen,
 }: Props) {
@@ -68,10 +71,17 @@ function NewsCardImpl({
 
   return (
     <motion.article
-      initial={{ opacity: 0, y: 14 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.94, transition: { duration: 0.18 } }}
-      transition={{ type: "spring", stiffness: 380, damping: 34 }}
+      transition={{
+        type: "spring",
+        stiffness: 380,
+        damping: 34,
+        // Escalonado, pero solo dentro de la página que acaba de entrar: si no,
+        // la tarjeta 60 tardaría dos segundos en aparecer.
+        delay: Math.min(index % 15, 6) * 0.035,
+      }}
       className="relative"
     >
       {/* Pistas de swipe: viven detrás de la tarjeta y se revelan al arrastrar. */}

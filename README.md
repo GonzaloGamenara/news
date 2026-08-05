@@ -128,6 +128,29 @@ Las traducciones se cachean en el CDN (una semana) y en `localStorage`, así que
 título no se traduce dos veces. Si el servicio falla, se muestran los originales en
 inglés en vez de dejar la tarjeta en blanco.
 
+## Sincronización (Supabase)
+
+El perfil vive en `localStorage` y se respalda en Supabase. Es **offline-first**: si no hay
+red, si Supabase se cae o si no está configurado, la app funciona exactamente igual.
+
+**No hay login.** Cada dispositivo genera un UUID aleatorio que funciona como credencial.
+Pegando ese código en otro teléfono (Ajustes → Sincronización), ese teléfono adopta el
+perfil. Se eligió así porque el login anónimo estaba deshabilitado en el proyecto y esto
+evita pedirte una cuenta para una app de noticias personal.
+
+La tabla tiene **RLS prendido y sin políticas**: la clave publicable no puede tocarla. El
+único acceso es [`/api/sync`](src/app/api/sync/route.ts), que corre en el servidor con la
+secret key. El `device_id` nunca sale del backend hacia otro lado.
+
+Setup:
+
+1. Correr [`supabase/schema.sql`](supabase/schema.sql) en el SQL Editor.
+2. Copiar `.env.example` a `.env.local` y completar las claves.
+
+Los conflictos se resuelven por *last write wins* sobre `updatedAt`. No hay merge por
+campo a propósito: el perfil es un modelo entrenado y mezclar pesos de dos dispositivos
+daría uno que no entrenó nadie.
+
 ## Ancho de banda
 
 Pensada para usarse con datos móviles, así que el peso importa. Medido sobre el build de

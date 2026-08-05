@@ -73,6 +73,17 @@ function update(profile: Profile): void {
   }, 300);
 }
 
+/** Perfil actual, para que la capa de sync lo lea sin montar un componente. */
+export const currentProfile = getSnapshot;
+
+/** Reemplaza el perfil entero (lo usa la sincronización al traer uno más nuevo). */
+export function replaceProfile(next: Profile): void {
+  update(next);
+}
+
+/** Se notifica cuando el perfil cambia, para empujarlo a Supabase. */
+export const onProfileChange = subscribe;
+
 export function useProfile() {
   const profile = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 

@@ -1,13 +1,19 @@
 "use client";
 
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import {
+  AnimatePresence,
+  MotionConfig,
+  motion,
+  useMotionValueEvent,
+  useScroll,
+} from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FloatingNav } from "./FloatingNav";
-import { LangMenu } from "./LangMenu";
 import { NewsCard } from "./NewsCard";
-import { ProfileSheet } from "./ProfileSheet";
 import { PullToRefresh } from "./PullToRefresh";
 import { Reader } from "./Reader";
+import { SettingsSheet } from "./SettingsSheet";
+import { useSync } from "@/lib/useSync";
 import { score, visible, type ScoredArticle } from "@/lib/ranking";
 import { isReadable } from "@/lib/reader";
 import { CATEGORY_MAP } from "@/lib/sources";
@@ -49,6 +55,17 @@ export function Feed({ initial }: { initial: FeedResponse }) {
   const { profile, react, markSeen, reset } = useProfile();
   const { prefs, set: setPrefs } = usePrefs();
   const translationVersion = useTranslationVersion();
+  const { status: syncStatus, start: startSync } = useSync();
+
+  // El header se esconde al bajar y vuelve al subir: en un teléfono son 56 px
+  // de lectura que se ganan sin perder el acceso a nada.
+  const { scrollY } = useScroll();
+  const [headerHidden, setHeaderHidden] = useState(false);
+  useMotionValueEvent(scrollY, "change", (y) => {
+    const previous = scrollY.getPrevious() ?? 0;
+    // El umbral de 240 px evita que el header baile con el rebote de iOS.
+    setHeaderHidden(y > 240 && y > previous);
+  });
 
   // Semilla de exploración. Arranca derivada del timestamp del servidor para
   // que el orden del primer render coincida con el HTML (si acá usáramos
@@ -168,14 +185,18 @@ export function Feed({ initial }: { initial: FeedResponse }) {
 
   const changeCategory = useCallback(
     (id: CategoryId) => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      // Tocar la categoría en la que ya estás = volver arriba, que es lo que
+      // uno espera de una barra de navegación.
+      if (id === category) return;
+
       setCategory(id);
       setLimit(PAGE);
-      window.scrollTo({ top: 0, behavior: "smooth" });
       // La carga se dispara desde el evento, no desde un efecto: evita el
       // render en cascada y deja explícito quién pidió los datos.
       void load(id);
     },
-    [load],
+    [load, category],
   );
 
   const handleOpen = useCallback(
@@ -234,19 +255,18 @@ export function Feed({ initial }: { initial: FeedResponse }) {
     [react],
   );
 
-  const handleTranslate = useCallback(
-    (enabled: boolean) => {
-      setPrefs({ translate: enabled });
-      // Se llama desde el click porque Chrome exige un gesto del usuario para
-      // bajar el paquete de idioma la primera vez.
-      if (enabled) {
-        translateAll(
-          shown.filter((a) => a.lang === "en").flatMap((a) => [a.title, a.summary]),
-        );
-      }
-    },
-    [setPrefs, shown],
-  );
+  /** Traduce ya lo que hay en pantalla, sin esperar al próximo render. */
+  const translateNow = useCallback(() => {
+    translateAll(
+      shown.filter((a) => a.lang === "en").flatMap((a) => [a.title, a.summary]),
+    );
+  }, [shown]);
+
+  // Arranca la sincronización con Supabase. Es un sistema externo, que es
+  // justamente para lo que sirve un efecto.
+  useEffect(() => {
+    startSync();
+  }, [startSync]);
 
   /** Texto a mostrar: el traducido si ya está listo, el original si no. */
   const display = useCallback(
@@ -274,7 +294,9 @@ export function Feed({ initial }: { initial: FeedResponse }) {
     <MotionConfig reducedMotion="user">
       {/* El header y el nav quedan FUERA de PullToRefresh: ese componente aplica
           un transform, y un transform en un ancestro rompe el position:fixed. */}
-      <header
+      <motion.header
+        animate={{ y: headerHidden ? "-110%" : "0%" }}
+        transition={{ type: "spring", stiffness: 380, damping: 36 }}
         className="fixed inset-x-0 top-0 z-30 border-b border-border/60 bg-bg/80 backdrop-blur-xl"
         style={{ paddingTop: "env(safe-area-inset-top)" }}
       >
@@ -313,24 +335,19 @@ export function Feed({ initial }: { initial: FeedResponse }) {
             </motion.span>
           </button>
 
-          <LangMenu
-            lang={prefs.lang}
-            translate={prefs.translate}
-            saveData={prefs.saveData}
-            onLang={(lang) => setPrefs({ lang })}
-            onTranslate={handleTranslate}
-            onSaveData={(saveData) => setPrefs({ saveData })}
-          />
-
-          <button
+          <motion.button
+            whileTap={{ scale: 0.92 }}
             onClick={() => setProfileOpen(true)}
-            aria-label="Tu perfil"
-            className="rounded-full bg-surface-2 px-3 py-1.5 text-sm font-medium"
+            aria-label="Ajustes y perfil"
+            className="flex items-center gap-1.5 rounded-full bg-surface-2 px-3 py-1.5 text-sm font-medium"
           >
-            ✦ {profile.votes}
-          </button>
+            <span className="text-violet-500">✦</span>
+            {profile.votes}
+            {prefs.saveData && <span className="text-emerald-500">◔</span>}
+            {prefs.translate && <span className="text-violet-500">↻</span>}
+          </motion.button>
         </div>
-      </header>
+      </motion.header>
 
       <PullToRefresh onRefresh={() => refresh(category)}>
         <main className="pt-header pb-nav mx-auto w-full max-w-2xl px-3">
@@ -384,6 +401,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
                     seen={profile.seen[article.id] !== undefined}
                     saveData={prefs.saveData}
                     hero={i === 0}
+                    index={i}
                     onReact={handleReact}
                     onOpen={handleOpen}
                   />
@@ -418,10 +436,17 @@ export function Feed({ initial }: { initial: FeedResponse }) {
         onReact={handleReact}
       />
 
-      <ProfileSheet
+      <SettingsSheet
         open={profileOpen}
         profile={profile}
+        prefs={prefs}
+        syncState={syncStatus}
         onClose={() => setProfileOpen(false)}
+        onPrefs={(patch) => {
+          setPrefs(patch);
+          // Prender la traducción tiene que traducir lo que ya está en pantalla.
+          if (patch.translate) translateNow();
+        }}
         onReset={reset}
       />
     </MotionConfig>

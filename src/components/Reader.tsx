@@ -1,7 +1,7 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
-import { useEffect } from "react";
+import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
+import { useEffect, useRef } from "react";
 import { CATEGORY_MAP } from "@/lib/sources";
 import type { ScoredArticle } from "@/lib/ranking";
 import type { ArticleFailure, ReaderState } from "@/lib/types";
@@ -23,6 +23,12 @@ const MESSAGES: Record<ArticleFailure, string> = {
 };
 
 export function Reader({ article, state, reaction, onClose, onReact }: Props) {
+  const scroller = useRef<HTMLDivElement>(null);
+  // Cuánto te queda de la nota. En una lista infinita, saber que estás por
+  // terminar cambia si seguís leyendo o no.
+  const { scrollYProgress } = useScroll({ container: scroller });
+  const progress = useSpring(scrollYProgress, { stiffness: 300, damping: 40 });
+
   useEffect(() => {
     if (!article) return;
 
@@ -54,7 +60,7 @@ export function Reader({ article, state, reaction, onClose, onReact }: Props) {
           className="fixed inset-0 z-50 flex flex-col bg-bg"
         >
           <header
-            className="flex items-center gap-2 border-b border-border bg-bg/90 px-3 backdrop-blur-xl"
+            className="relative flex items-center gap-2 border-b border-border bg-bg/90 px-3 backdrop-blur-xl"
             style={{ paddingTop: "env(safe-area-inset-top)" }}
           >
             <button
@@ -75,9 +81,13 @@ export function Reader({ article, state, reaction, onClose, onReact }: Props) {
                 {state.content.minutes} min de lectura
               </span>
             )}
+            <motion.div
+              className="absolute inset-x-0 bottom-0 h-0.5 origin-left bg-violet-500"
+              style={{ scaleX: progress }}
+            />
           </header>
 
-          <div className="flex-1 overflow-y-auto overscroll-contain">
+          <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain">
             <div className="mx-auto max-w-2xl px-4 pt-5 pb-40">
               <h1 className="text-2xl leading-tight font-bold">{article.title}</h1>
 

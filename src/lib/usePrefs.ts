@@ -60,6 +60,21 @@ function subscribe(listener: () => void): () => void {
   return () => listeners.delete(listener);
 }
 
+export const currentPrefs = getSnapshot;
+
+export const onPrefsChange = subscribe;
+
+/** Reemplaza las preferencias (lo usa la sincronización). */
+export function replacePrefs(next: Prefs): void {
+  snapshot = next;
+  for (const listener of listeners) listener();
+  try {
+    window.localStorage.setItem(KEY, JSON.stringify(next));
+  } catch {
+    // Modo privado: duran lo que dure la pestaña.
+  }
+}
+
 export function usePrefs() {
   const prefs = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 
