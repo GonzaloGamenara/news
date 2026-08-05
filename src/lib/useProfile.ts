@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import { decay, emptyProfile, learn, prune, unlearn, type Profile } from "./ranking";
+import {
+  addImpressions,
+  decay,
+  emptyProfile,
+  learn,
+  prune,
+  unlearn,
+  type Profile,
+} from "./ranking";
 import type { Article } from "./types";
 
 // v2: las reacciones pasaron de `1 | -1` a `{ vote, at }` para poder distinguir
@@ -35,6 +43,7 @@ function read(): Profile {
       votes: parsed.votes ?? 0,
       reactions: parsed.reactions ?? {},
       seen: parsed.seen ?? {},
+      impressions: parsed.impressions ?? {},
       updatedAt: parsed.updatedAt ?? Date.now(),
     });
   } catch {
@@ -71,6 +80,27 @@ function update(profile: Profile): void {
       // Sin persistencia la app sigue andando en memoria hasta cerrar la pestaña.
     }
   }, 300);
+}
+
+/**
+ * Impresiones de la sesión en curso.
+ *
+ * Viven acá y no en el perfil a propósito: si cada tarjeta que aparece en
+ * pantalla modificara el perfil, el feed se reordenaría bajo tus pies mientras
+ * scrolleás. Se vuelcan cuando cambia el feed (refresh, categoría, salir).
+ */
+const pending = new Set<string>();
+
+export function noteImpression(id: string): void {
+  pending.add(id);
+}
+
+/** Vuelca las impresiones acumuladas al perfil. */
+export function flushImpressions(): void {
+  if (pending.size === 0) return;
+  const ids = [...pending];
+  pending.clear();
+  update(addImpressions(getSnapshot(), ids));
 }
 
 /** Perfil actual, para que la capa de sync lo lea sin montar un componente. */

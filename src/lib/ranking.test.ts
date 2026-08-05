@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  addImpressions,
   affinity,
   emptyProfile,
   learn,
@@ -254,6 +255,76 @@ describe("ranking", () => {
 
     expect(ranked[0].reasons.length).toBeGreaterThan(0);
     expect(ranked[0].reasons[0].weight).toBeGreaterThan(0);
+  });
+});
+
+describe("fatiga por repetición", () => {
+  const DAY = 86_400_000;
+
+  it("una nota que ya te mostré vale menos que una que no", () => {
+    const vista = article({ id: "vista" });
+    const nueva = article({ id: "nueva" });
+
+    const profile: Profile = {
+      ...emptyProfile(),
+      impressions: { vista: { n: 1, last: NOW - HOUR } },
+    };
+
+    const ranked = score([vista, nueva], profile, 1, NOW);
+    expect(ranked[0].id).toBe("nueva");
+  });
+
+  it("cuantas más veces te la mostré, más abajo va", () => {
+    const build = (n: number): Profile => ({
+      ...emptyProfile(),
+      impressions: { a1: { n, last: NOW - HOUR } },
+    });
+
+    const puntajes = [0, 1, 2, 3, 5].map(
+      (n) => score([article({ id: "a1" })], build(n), 1, NOW)[0].score,
+    );
+
+    for (let i = 1; i < puntajes.length; i++) {
+      expect(puntajes[i]).toBeLessThan(puntajes[i - 1]);
+    }
+    // Con cinco impresiones tiene que ser marginal frente a no haberla visto.
+    expect(puntajes[4]).toBeLessThan(puntajes[0] * 0.2);
+  });
+
+  it("se perdona con el tiempo: lo de hace una semana puede volver", () => {
+    const reciente: Profile = {
+      ...emptyProfile(),
+      impressions: { a1: { n: 2, last: NOW - HOUR } },
+    };
+    const vieja: Profile = {
+      ...emptyProfile(),
+      impressions: { a1: { n: 2, last: NOW - 7 * DAY } },
+    };
+
+    const a = article({ id: "a1" });
+    expect(score([a], vieja, 1, NOW)[0].score).toBeGreaterThan(
+      score([a], reciente, 1, NOW)[0].score,
+    );
+  });
+
+  it("una nota nunca mostrada no se penaliza", () => {
+    const a = article({ id: "a1" });
+    const conRegistroDeOtra: Profile = {
+      ...emptyProfile(),
+      impressions: { otra: { n: 9, last: NOW } },
+    };
+    expect(score([a], conRegistroDeOtra, 1, NOW)[0].score).toBe(
+      score([a], emptyProfile(), 1, NOW)[0].score,
+    );
+  });
+
+  it("acumula impresiones sin perder las anteriores", () => {
+    let profile = addImpressions(emptyProfile(), ["a", "b"], NOW);
+    profile = addImpressions(profile, ["a"], NOW + 1000);
+
+    expect(profile.impressions.a.n).toBe(2);
+    expect(profile.impressions.b.n).toBe(1);
+    expect(profile.impressions.a.last).toBe(NOW + 1000);
   });
 });
 

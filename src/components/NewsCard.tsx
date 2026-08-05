@@ -32,6 +32,8 @@ type Props = {
   hero: boolean;
   /** Posición en la página actual, para escalonar la entrada. */
   index: number;
+  /** Cuántos medios cubren la misma historia. 0 = no es tendencia. */
+  coverage?: number;
   onReact: (article: ScoredArticle, liked: boolean) => void;
   onOpen: (article: ScoredArticle) => void;
 };
@@ -45,6 +47,7 @@ function NewsCardImpl({
   saveData,
   hero,
   index,
+  coverage = 0,
   onReact,
   onOpen,
 }: Props) {
@@ -83,6 +86,8 @@ function NewsCardImpl({
         // la tarjeta 60 tardaría dos segundos en aparecer.
         delay: Math.min(index % 15, 6) * 0.035,
       }}
+      // Lo lee el observador de impresiones del Feed.
+      data-id={article.id}
       className="relative"
     >
       {/* Pistas de swipe: viven detrás de la tarjeta y se revelan al arrastrar. */}
@@ -156,6 +161,11 @@ function NewsCardImpl({
                 {relativeTime(article.publishedAt)}
               </span>
               {seen && <span className="text-fg-muted">· leída</span>}
+              {coverage > 1 && (
+                <span className="rounded-full bg-orange-500/14 px-2 py-0.5 font-semibold text-orange-600 dark:text-orange-400">
+                  🔥 {coverage} medios
+                </span>
+              )}
               {article.reasons.length > 0 && (
                 <span
                   className="ml-auto text-fg-muted"

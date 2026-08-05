@@ -2,6 +2,7 @@ import type { Category, CategoryId, Source } from "./types";
 
 export const CATEGORIES: Category[] = [
   { id: "para-vos", label: "Para vos", emoji: "✦", accent: "265 85% 62%" },
+  { id: "trending", label: "Trending", emoji: "🔥", accent: "10 90% 55%" },
   { id: "cine", label: "Cine y series", emoji: "🎬", accent: "352 80% 60%" },
   { id: "videojuegos", label: "Videojuegos", emoji: "🎮", accent: "155 65% 45%" },
   { id: "teatro", label: "Teatro", emoji: "🎭", accent: "28 90% 58%" },
@@ -12,13 +13,22 @@ export const CATEGORIES: Category[] = [
   { id: "arte", label: "Arte y diseño", emoji: "🎨", accent: "175 65% 42%" },
   { id: "tecnologia", label: "Tecnología", emoji: "⚡", accent: "225 85% 62%" },
   { id: "ciencia", label: "Ciencia", emoji: "🔬", accent: "300 60% 58%" },
+  { id: "espacio", label: "Espacio", emoji: "🚀", accent: "250 70% 60%" },
+  { id: "naturaleza", label: "Naturaleza", emoji: "🌿", accent: "145 55% 38%" },
   { id: "deportes", label: "Deportes", emoji: "⚽", accent: "130 60% 42%" },
   { id: "negocios", label: "Economía", emoji: "📈", accent: "15 80% 52%" },
+  { id: "gastronomia", label: "Gastronomía", emoji: "🍳", accent: "35 85% 48%" },
+  { id: "viajes", label: "Viajes", emoji: "🧭", accent: "190 75% 42%" },
+  { id: "foto", label: "Fotografía", emoji: "📷", accent: "215 15% 45%" },
+  { id: "historia", label: "Historia", emoji: "🏛️", accent: "30 40% 45%" },
+  { id: "motor", label: "Motor", emoji: "🏎️", accent: "355 75% 50%" },
+  { id: "curiosidades", label: "Curiosidades", emoji: "🧩", accent: "280 65% 55%" },
 ];
 
 /** Las que vienen activas si nunca tocaste el selector de géneros. */
 export const DEFAULT_CATEGORIES: CategoryId[] = [
   "para-vos",
+  "trending",
   "cine",
   "videojuegos",
   "teatro",
@@ -177,11 +187,55 @@ export const SOURCES: Source[] = [
   { id: "guardian-business", name: "The Guardian Business", url: "https://www.theguardian.com/uk/business/rss", category: "negocios", lang: "en" },
   { id: "infobae-economia", name: "Infobae Economía", url: "https://www.infobae.com/arc/outboundfeeds/rss/category/economia/?outputType=xml", category: "negocios", lang: "es" },
   { id: "elpais-economia", name: "El País Economía", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada", category: "negocios", lang: "es" },
+
+  // ---------- ESPACIO ----------
+  { id: "nasa", name: "NASA", url: "https://www.nasa.gov/news-release/feed/", category: "espacio", lang: "en" },
+  { id: "spacecom", name: "Space.com", url: "https://www.space.com/feeds/all", category: "espacio", lang: "en" },
+  { id: "esa", name: "ESA", url: "https://www.esa.int/rssfeed/Our_Activities/Space_News", category: "espacio", lang: "en" },
+  { id: "universetoday", name: "Universe Today", url: "https://www.universetoday.com/feed", category: "espacio", lang: "en" },
+  { id: "eureka-espacio", name: "Eureka", url: "https://danielmarin.naukas.com/feed/", category: "espacio", lang: "es" },
+
+  // ---------- NATURALEZA ----------
+  { id: "guardian-env", name: "The Guardian Environment", url: "https://www.theguardian.com/environment/rss", category: "naturaleza", lang: "en" },
+  { id: "mongabay", name: "Mongabay", url: "https://news.mongabay.com/feed/", category: "naturaleza", lang: "en" },
+
+  // ---------- GASTRONOMÍA ----------
+  { id: "eater", name: "Eater", url: "https://www.eater.com/rss/index.xml", category: "gastronomia", lang: "en" },
+  { id: "guardian-food", name: "The Guardian Food", url: "https://www.theguardian.com/food/rss", category: "gastronomia", lang: "en" },
+  { id: "bonappetit", name: "Bon Appétit", url: "https://www.bonappetit.com/feed/rss", category: "gastronomia", lang: "en" },
+  { id: "directopaladar", name: "Directo al Paladar", url: "https://www.directoalpaladar.com/feedburner.xml", category: "gastronomia", lang: "es" },
+
+  // ---------- VIAJES ----------
+  { id: "guardian-travel", name: "The Guardian Travel", url: "https://www.theguardian.com/travel/rss", category: "viajes", lang: "en" },
+  { id: "atlasobscura", name: "Atlas Obscura", url: "https://www.atlasobscura.com/feeds/latest", category: "viajes", lang: "en" },
+  { id: "elviajero", name: "El Viajero", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/elviajero/portada", category: "viajes", lang: "es" },
+
+  // ---------- FOTOGRAFÍA ----------
+  { id: "petapixel", name: "PetaPixel", url: "https://petapixel.com/feed/", category: "foto", lang: "en" },
+  { id: "dpreview", name: "DPReview", url: "https://www.dpreview.com/feeds/news.xml", category: "foto", lang: "en" },
+  { id: "guardian-photo", name: "The Guardian Photography", url: "https://www.theguardian.com/artanddesign/photography/rss", category: "foto", lang: "en" },
+
+  // ---------- HISTORIA ----------
+  { id: "historytoday", name: "History Today", url: "https://www.historytoday.com/feed/rss.xml", category: "historia", lang: "en" },
+  { id: "smithsonian", name: "Smithsonian", url: "https://www.smithsonianmag.com/rss/latest_articles/", category: "historia", lang: "en" },
+
+  // ---------- MOTOR ----------
+  { id: "motor1", name: "Motor1", url: "https://www.motor1.com/rss/news/all/", category: "motor", lang: "en" },
+  { id: "caranddriver", name: "Car and Driver", url: "https://www.caranddriver.com/rss/all.xml/", category: "motor", lang: "en" },
+  { id: "motorpasion", name: "Motorpasión", url: "https://www.motorpasion.com/feedburner.xml", category: "motor", lang: "es" },
+
+  // ---------- CURIOSIDADES ----------
+  { id: "kottke", name: "Kottke", url: "https://feeds.kottke.org/main", category: "curiosidades", lang: "en" },
+  { id: "boingboing", name: "Boing Boing", url: "https://boingboing.net/feed", category: "curiosidades", lang: "en" },
+  { id: "openculture", name: "Open Culture", url: "https://www.openculture.com/feed", category: "curiosidades", lang: "en" },
 ];
 
 export const SOURCE_MAP = new Map(SOURCES.map((s) => [s.id, s]));
 
+/** Categorías que no tienen fuentes propias: se arman desde el pool general. */
+export const VIRTUAL_CATEGORIES: CategoryId[] = ["para-vos", "trending"];
+
 export function sourcesFor(category: CategoryId): Source[] {
-  if (category === "para-vos") return SOURCES;
+  if (VIRTUAL_CATEGORIES.includes(category)) return SOURCES;
   return SOURCES.filter((s) => s.category === category);
 }

@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { topTopics, type Profile } from "@/lib/ranking";
+import { isInstalled } from "@/lib/install";
 import { CATEGORIES } from "@/lib/sources";
 import { adoptDevice, deviceId, type SyncState } from "@/lib/useSync";
 import type { Prefs } from "@/lib/usePrefs";
@@ -16,16 +17,20 @@ type Props = {
   onClose: () => void;
   onPrefs: (patch: Partial<Prefs>) => void;
   onReset: () => void;
+  onInstall: () => void;
 };
 
 /** Muestras de color para elegir el tema mirando, no leyendo. */
 const THEMES: Array<{ id: ThemeId; label: string; bg: string; surface: string; accent: string }> = [
-  { id: "sistema", label: "Sistema", bg: "linear-gradient(135deg,#f6f6f8 50%,#0b0b0f 50%)", surface: "#8888aa", accent: "#8b5cf6" },
-  { id: "claro", label: "Claro", bg: "#f6f6f8", surface: "#ffffff", accent: "#7c3aed" },
-  { id: "oscuro", label: "Oscuro", bg: "#0b0b0f", surface: "#16161c", accent: "#a78bfa" },
-  { id: "noche", label: "Noche", bg: "#000000", surface: "#0c0c0e", accent: "#a78bfa" },
-  { id: "sepia", label: "Sepia", bg: "#f4ecdf", surface: "#fbf5ea", accent: "#b45309" },
-  { id: "indigo", label: "Índigo", bg: "#0c1020", surface: "#141a2e", accent: "#60a5fa" },
+  { id: "sistema", label: "Sistema", bg: "linear-gradient(135deg,#f7f4ef 50%,#0b0b0f 50%)", surface: "#8888aa", accent: "#8b5cf6" },
+  { id: "papel", label: "Papel", bg: "#f7f4ef", surface: "#ffffff", accent: "#c62f24" },
+  { id: "menta", label: "Menta", bg: "#eef6f3", surface: "#ffffff", accent: "#159485" },
+  { id: "sepia", label: "Sepia", bg: "#f2e8d5", surface: "#fbf4e6", accent: "#b35c11" },
+  { id: "carbon", label: "Carbón", bg: "#0b0b0f", surface: "#16161c", accent: "#a78bfa" },
+  { id: "noche", label: "Noche", bg: "#000000", surface: "#0a0a0c", accent: "#1ad5f5" },
+  { id: "indigo", label: "Índigo", bg: "#0a0e24", surface: "#131936", accent: "#5f9bfa" },
+  { id: "bosque", label: "Bosque", bg: "#081410", surface: "#10201a", accent: "#95e045" },
+  { id: "atardecer", label: "Atardecer", bg: "#1a0f16", surface: "#271722", accent: "#fb8b2e" },
 ];
 
 const LANGS: Array<{ id: LangFilter; label: string }> = [
@@ -50,6 +55,7 @@ export function SettingsSheet({
   onClose,
   onPrefs,
   onReset,
+  onInstall,
 }: Props) {
   const { liked, disliked } = topTopics(profile);
   const confidence = Math.min(1, profile.votes / 25);
@@ -159,7 +165,9 @@ export function SettingsSheet({
               {/* ---------------- Géneros ---------------- */}
               <Section title="Géneros en el menú">
                 <div className="flex flex-wrap gap-2">
-                  {CATEGORIES.filter((c) => c.id !== "para-vos").map((category) => {
+                  {CATEGORIES.filter(
+                    (c) => c.id !== "para-vos" && c.id !== "trending",
+                  ).map((category) => {
                     const active = prefs.categories.includes(category.id);
                     return (
                       <motion.button
@@ -194,8 +202,8 @@ export function SettingsSheet({
                   })}
                 </div>
                 <p className="mt-3 text-xs text-fg-muted">
-                  Los apagados no aparecen en el nav ni en «Para vos». «Para vos» siempre
-                  está.
+                  Los apagados no aparecen en el nav ni en «Para vos» y «Trending», que son
+                  secciones fijas.
                 </p>
               </Section>
 
@@ -243,6 +251,16 @@ export function SettingsSheet({
               <Section title="Sincronización">
                 <SyncBlock state={syncState} />
               </Section>
+
+              {/* Si ya la estás usando instalada, ofrecer instalarla sobra. */}
+              {!isInstalled() && (
+                <button
+                  onClick={onInstall}
+                  className="w-full rounded-xl bg-surface-2 py-3 text-sm font-medium"
+                >
+                  📲 Instalar en el teléfono
+                </button>
+              )}
 
               <button
                 onClick={() => {

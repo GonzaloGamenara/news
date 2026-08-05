@@ -1,5 +1,6 @@
 ﻿export type CategoryId =
   | "para-vos"
+  | "trending"
   | "cine"
   | "videojuegos"
   | "teatro"
@@ -10,11 +11,28 @@
   | "arte"
   | "tecnologia"
   | "ciencia"
+  | "espacio"
+  | "naturaleza"
   | "deportes"
-  | "negocios";
+  | "negocios"
+  | "gastronomia"
+  | "viajes"
+  | "foto"
+  | "historia"
+  | "motor"
+  | "curiosidades";
 
 /** Temas visuales. `sistema` sigue la preferencia del teléfono. */
-export type ThemeId = "sistema" | "claro" | "oscuro" | "noche" | "sepia" | "indigo";
+export type ThemeId =
+  | "sistema"
+  | "papel"
+  | "carbon"
+  | "noche"
+  | "sepia"
+  | "indigo"
+  | "bosque"
+  | "atardecer"
+  | "menta";
 
 export type Lang = "es" | "en";
 

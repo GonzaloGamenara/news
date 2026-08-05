@@ -26,8 +26,21 @@ const DEFAULTS: Prefs = {
   categories: DEFAULT_CATEGORIES,
 };
 
-const THEMES = new Set<ThemeId>(["sistema", "claro", "oscuro", "noche", "sepia", "indigo"]);
+const THEMES = new Set<ThemeId>([
+  "sistema",
+  "papel",
+  "carbon",
+  "noche",
+  "sepia",
+  "indigo",
+  "bosque",
+  "atardecer",
+  "menta",
+]);
 const VALID_CATEGORIES = new Set<string>(CATEGORIES.map((c) => c.id));
+
+/** Secciones, no géneros: no se pueden apagar desde el selector. */
+const FIXED_CATEGORIES: CategoryId[] = ["para-vos", "trending"];
 
 /** Aplica el tema al documento. El mismo atributo que pone el script inline. */
 function applyTheme(theme: ThemeId): void {
@@ -70,10 +83,13 @@ function read(): Prefs {
       saveData:
         typeof parsed.saveData === "boolean" ? parsed.saveData : systemSaveData(),
       theme: parsed.theme && THEMES.has(parsed.theme) ? parsed.theme : "sistema",
-      // "Para vos" no se puede apagar: es el feed principal.
-      categories: categories.includes("para-vos")
-        ? categories
-        : ["para-vos", ...categories],
+      // "Para vos" y "Trending" son secciones fijas, no géneros: siempre están.
+      // Además esto migra solo las preferencias guardadas antes de que Trending
+      // existiera, que si no se quedarían sin la pestaña para siempre.
+      categories: [
+        ...FIXED_CATEGORIES,
+        ...categories.filter((c) => !FIXED_CATEGORIES.includes(c)),
+      ],
     };
   } catch {
     return DEFAULTS;

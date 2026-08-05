@@ -43,12 +43,17 @@ const FORGET_HALFLIFE_DAYS = 60;
 const MAX_WEIGHTS = 4000;
 const MAX_SEEN = 1500;
 const MAX_REACTIONS = 2000;
+/** Más alto que `seen`: se registra una impresión por nota que pasa por pantalla. */
+const MAX_IMPRESSIONS = 4000;
 
 export type Weights = Record<string, number>;
 
 /** El `at` importa: sin él no podríamos distinguir un voto de hace un rato de
  *  uno de recién, y una nota que tocás ahora se hundiría bajo tus pies. */
 export type Reaction = { vote: 1 | -1; at: number };
+
+/** Cuántas veces te pasó por delante una nota, y cuándo fue la última. */
+export type Impression = { n: number; last: number };
 
 export type Profile = {
   weights: Weights;
@@ -57,6 +62,14 @@ export type Profile = {
   reactions: Record<string, Reaction>;
   /** articleId -> timestamp en que se abrió/leyó. */
   seen: Record<string, number>;
+  /**
+   * Impresiones: notas que aparecieron en pantalla, las hayas abierto o no.
+   *
+   * Es la diferencia entre "ya la leí" y "ya me la mostraste". Sin esto, una
+   * nota que scrolleás sin abrir vuelve intacta al tope en cada sesión, que era
+   * exactamente por qué el feed se sentía repetido.
+   */
+  impressions: Record<string, Impression>;
   updatedAt: number;
 };
 
@@ -65,6 +78,7 @@ export const emptyProfile = (): Profile => ({
   votes: 0,
   reactions: {},
   seen: {},
+  impressions: {},
   updatedAt: Date.now(),
 });
 
@@ -155,11 +169,13 @@ export function prune(profile: Profile): Profile {
   const weightKeys = Object.keys(profile.weights);
   const seenKeys = Object.keys(profile.seen);
   const reactionKeys = Object.keys(profile.reactions);
+  const impressionKeys = Object.keys(profile.impressions);
 
   if (
     weightKeys.length <= MAX_WEIGHTS &&
     seenKeys.length <= MAX_SEEN &&
-    reactionKeys.length <= MAX_REACTIONS
+    reactionKeys.length <= MAX_REACTIONS &&
+    impressionKeys.length <= MAX_IMPRESSIONS
   ) {
     return profile;
   }
@@ -183,7 +199,29 @@ export function prune(profile: Profile): Profile {
     weights,
     seen: keepLast(profile.seen, seenKeys, MAX_SEEN),
     reactions: keepLast(profile.reactions, reactionKeys, MAX_REACTIONS),
+    impressions: keepLast(profile.impressions, impressionKeys, MAX_IMPRESSIONS),
   };
+}
+
+/**
+ * Suma impresiones al perfil. Se llama de a tandas, no por tarjeta: mientras
+ * scrolleás se acumulan aparte y esto las vuelca cuando cambia el feed.
+ */
+export function addImpressions(
+  profile: Profile,
+  ids: Iterable<string>,
+  at = Date.now(),
+): Profile {
+  const impressions = { ...profile.impressions };
+  let changed = false;
+
+  for (const id of ids) {
+    const previous = impressions[id];
+    impressions[id] = { n: (previous?.n ?? 0) + 1, last: at };
+    changed = true;
+  }
+
+  return changed ? { ...profile, impressions } : profile;
 }
 
 /**
@@ -208,6 +246,29 @@ export function decay(profile: Profile): Profile {
 
 const freshness = (publishedAt: number, now: number) =>
   Math.pow(0.5, (now - publishedAt) / 3_600_000 / FRESHNESS_HALFLIFE);
+
+/** Cada cuántos días se "perdona" una impresión. */
+const IMPRESSION_HEAL_DAYS = 2.5;
+
+/**
+ * Penalización por repetición, que es lo que hace que el feed se sienta nuevo.
+ *
+ * La curva es agresiva a propósito: con una impresión la nota vale la mitad,
+ * con tres es casi invisible. Es el mismo principio que usan los feeds grandes
+ * (impression capping): si te lo mostré y no lo tocaste, no insisto.
+ *
+ * Pero se sana con el tiempo. Una nota que viste hace una semana puede volver:
+ * quizá ese día no tenías tiempo. Sin esto el catálogo se agota solo.
+ */
+function fatigue(impression: Impression | undefined, now: number): number {
+  if (!impression) return 1;
+
+  const days = (now - impression.last) / 86_400_000;
+  const effective = impression.n - days / IMPRESSION_HEAL_DAYS;
+  if (effective <= 0) return 1;
+
+  return 1 / (1 + Math.pow(effective, 1.6) * 0.9);
+}
 
 /** Ruido determinístico por artículo: mismo orden en un re-render, distinto por sesión. */
 function jitter(id: string, salt: number): number {
@@ -273,6 +334,11 @@ export function score(
     // Lo mismo para el 👍: baja recién en la próxima carga del feed.
     const reaction = profile.reactions[article.id];
     if (reaction?.vote === 1 && reaction.at < now) s *= 0.6;
+
+    // Y la fatiga por repetición. Las impresiones de ESTA sesión no cuentan
+    // todavía (se acumulan aparte y se vuelcan al refrescar), así que scrollear
+    // no reordena el feed bajo tus pies.
+    s *= fatigue(profile.impressions[article.id], now);
 
     return { ...article, score: s, affinity: a, reasons };
   });

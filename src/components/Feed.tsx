@@ -9,14 +9,18 @@ import {
 } from "framer-motion";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FloatingNav } from "./FloatingNav";
+import { InstallGuide } from "./InstallGuide";
 import { NewsCard } from "./NewsCard";
 import { PullToRefresh } from "./PullToRefresh";
 import { Reader } from "./Reader";
 import { SettingsSheet } from "./SettingsSheet";
 import { useSync } from "@/lib/useSync";
+import { isInstalled } from "@/lib/install";
 import { score, visible, type ScoredArticle } from "@/lib/ranking";
 import { isReadable } from "@/lib/reader";
 import { CATEGORY_MAP } from "@/lib/sources";
+import { cluster, coverageMap } from "@/lib/trending";
+import { flushImpressions, noteImpression } from "@/lib/useProfile";
 import { cached, translateAll, useTranslationVersion } from "@/lib/translate";
 import { usePrefs } from "@/lib/usePrefs";
 import { useProfile } from "@/lib/useProfile";
@@ -29,6 +33,8 @@ import type {
 } from "@/lib/types";
 
 const PAGE = 15;
+/** Para no volver a ofrecer la instalación en cada visita. */
+const INSTALL_PROMPTED = "news.install.prompted";
 /** Si volvés a la app y el feed tiene más de esto, se refresca solo. */
 const STALE_AFTER = 15 * 60 * 1000;
 
@@ -50,6 +56,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
   const [limit, setLimit] = useState(PAGE);
   const [profileOpen, setProfileOpen] = useState(false);
   const [reading, setReading] = useState<ScoredArticle | null>(null);
+  const [installOpen, setInstallOpen] = useState(false);
   const [readerState, setReaderState] = useState<ReaderState>({ phase: "loading" });
 
   const { profile, react, markSeen, reset } = useProfile();
@@ -73,6 +80,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
   const [salt, setSalt] = useState(initial.fetchedAt);
 
   const sentinel = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
   const inFlight = useRef<AbortController | null>(null);
   const readerFetch = useRef<AbortController | null>(null);
 
@@ -120,6 +128,9 @@ export function Feed({ initial }: { initial: FeedResponse }) {
   /** Recarga pedida por el usuario: la única que muestra el spinner explícito. */
   const refresh = useCallback(
     (target: CategoryId) => {
+      // Antes de recargar volcamos lo que viste: así el feed nuevo ya viene sin
+      // las notas que te acaban de pasar por delante.
+      flushImpressions();
       setRefreshing(true);
       // Nueva semilla: la exploración rota, así refrescar trae otra mezcla
       // aunque las noticias sean casi las mismas.
@@ -146,13 +157,33 @@ export function Feed({ initial }: { initial: FeedResponse }) {
   // `loading` es derivado, no un estado más: no hay nada que sincronizar.
   const loading = !entry || refreshing;
 
+  /** Historias que cubren varios medios a la vez: la señal de "está estallando". */
+  const clusters = useMemo(() => {
+    if (!entry || category !== "trending") return [];
+    return cluster(entry.articles, entry.fetchedAt);
+  }, [entry, category]);
+
+  /** Cuántos medios cubren cada nota, para el sello de la tarjeta. */
+  const coverage = useMemo(() => coverageMap(clusters), [clusters]);
+
   const ranked: ScoredArticle[] = useMemo(() => {
     if (!entry) return [];
 
     let pool = entry.articles;
 
-    // "Para vos" mezcla todas las fuentes, así que se filtra por los géneros
-    // que dejaste activos. En una categoría concreta no hace falta.
+    // "Para vos" y "Trending" mezclan todas las fuentes, así que se filtran por
+    // los géneros activos. En una categoría concreta no hace falta.
+    if (category === "trending") {
+      // El orden lo da la cobertura, no el algoritmo personal: si algo lo están
+      // cubriendo diez medios, va arriba aunque no sea lo tuyo.
+      return clusters
+        .map((c) => c.lead)
+        .filter((a) => prefs.categories.includes(a.category))
+        .filter((a) => profile.reactions[a.id]?.vote !== -1)
+        .filter((a) => prefs.lang === "todo" || a.lang === prefs.lang)
+        .map((a) => ({ ...a, score: 0, affinity: 0.5, reasons: [] }));
+    }
+
     if (category === "para-vos") {
       pool = pool.filter((a) => prefs.categories.includes(a.category));
     }
@@ -163,7 +194,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
     // La frescura se mide contra el momento del fetch, no contra "ahora": el
     // ranking queda determinístico y estable mientras no recargues.
     return score(visible(byLang, profile), profile, salt, entry.fetchedAt);
-  }, [entry, profile, salt, prefs.lang, prefs.categories, category]);
+  }, [entry, profile, salt, prefs.lang, prefs.categories, category, clusters]);
 
   const shown = useMemo(() => ranked.slice(0, limit), [ranked, limit]);
 
@@ -175,6 +206,68 @@ export function Feed({ initial }: { initial: FeedResponse }) {
       shown.filter((a) => a.lang === "en").flatMap((a) => [a.title, a.summary]),
     );
   }, [shown, prefs.translate]);
+
+  /**
+   * Registra una impresión por cada nota que estuvo de verdad en pantalla.
+   *
+   * "De verdad" = al menos la mitad visible durante 900 ms. Pasar scrolleando a
+   * toda velocidad no cuenta como habértela mostrado, y esa distinción es lo
+   * que evita quemar el catálogo entero en un viaje.
+   */
+  useEffect(() => {
+    const list = listRef.current;
+    if (!list) return;
+
+    const timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          const id = (e.target as HTMLElement).dataset.id;
+          if (!id) continue;
+
+          if (e.isIntersecting) {
+            if (!timers.has(id)) {
+              timers.set(
+                id,
+                setTimeout(() => {
+                  noteImpression(id);
+                  timers.delete(id);
+                }, 900),
+              );
+            }
+          } else {
+            const timer = timers.get(id);
+            if (timer) {
+              clearTimeout(timer);
+              timers.delete(id);
+            }
+          }
+        }
+      },
+      { threshold: 0.5 },
+    );
+
+    for (const node of list.querySelectorAll("[data-id]")) observer.observe(node);
+
+    return () => {
+      observer.disconnect();
+      for (const timer of timers.values()) clearTimeout(timer);
+    };
+  }, [shown]);
+
+  // Las impresiones se vuelcan al perfil cuando te vas de la app. Hacerlo antes
+  // reordenaría el feed mientras lo estás mirando.
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState === "hidden") flushImpressions();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      document.removeEventListener("visibilitychange", onHide);
+      flushImpressions();
+    };
+  }, []);
 
   // Scroll infinito.
   useEffect(() => {
@@ -196,6 +289,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
       // uno espera de una barra de navegación.
       if (id === category) return;
 
+      flushImpressions();
       setCategory(id);
       setLimit(PAGE);
       // La carga se dispara desde el evento, no desde un efecto: evita el
@@ -278,6 +372,28 @@ export function Feed({ initial }: { initial: FeedResponse }) {
   useEffect(() => {
     startSync();
   }, [startSync]);
+
+  // El tutorial de instalación se ofrece una sola vez, y nunca si ya estás
+  // usando la app instalada. Va con retraso para no tapar la primera impresión.
+  useEffect(() => {
+    if (isInstalled()) return;
+    try {
+      if (window.localStorage.getItem(INSTALL_PROMPTED) === "1") return;
+    } catch {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      try {
+        window.localStorage.setItem(INSTALL_PROMPTED, "1");
+      } catch {
+        // Sin storage lo va a volver a ver; no es grave.
+      }
+      setInstallOpen(true);
+    }, 6000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   /** Texto a mostrar: el traducido si ya está listo, el original si no. */
   const display = useCallback(
@@ -398,7 +514,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
           {/* La key hace que cambiar de categoría o de idioma reemplace la lista
               entera en vez de sacar las tarjetas una por una: con `popLayout`,
               decenas de salidas simultáneas dejaban tarjetas colgadas en el DOM. */}
-          <div key={`${category}-${prefs.lang}`} className="mt-3 space-y-3">
+          <div ref={listRef} key={`${category}-${prefs.lang}`} className="mt-3 space-y-3">
             <AnimatePresence initial={false}>
               {shown.map((article, i) => {
                 const text = display(article);
@@ -413,6 +529,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
                     saveData={prefs.saveData}
                     hero={i === 0}
                     index={i}
+                    coverage={coverage.get(article.id) ?? 0}
                     onReact={handleReact}
                     onOpen={handleOpen}
                   />
@@ -468,7 +585,13 @@ export function Feed({ initial }: { initial: FeedResponse }) {
           }
         }}
         onReset={reset}
+        onInstall={() => {
+          setProfileOpen(false);
+          setInstallOpen(true);
+        }}
       />
+
+      <InstallGuide open={installOpen} onClose={() => setInstallOpen(false)} />
     </MotionConfig>
   );
 }

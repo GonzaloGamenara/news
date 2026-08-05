@@ -68,6 +68,13 @@ score = w_gusto × afinidad
   perfil vacío el feed es básicamente cronológico.
 - El **ruido de exploración** siempre está: sin él, el feed se cierra en tres temas y
   nunca más te muestra nada nuevo.
+- **Fatiga por repetición.** Es lo que hace que el feed se sienta nuevo. No alcanza con
+  marcar lo que abriste: una nota que scrolleás sin tocar también hay que dejar de
+  mostrarla. Se cuentan **impresiones** (media tarjeta visible por 900 ms) y el puntaje
+  cae fuerte: una impresión la deja en la mitad, tres la vuelven casi invisible. Es el
+  mismo *impression capping* que usan los feeds grandes: si te lo mostré y no lo tocaste,
+  no insisto. Pero se perdona con el tiempo (a razón de una impresión cada 2,5 días), así
+  que lo de la semana pasada puede volver — sin eso el catálogo se agota solo.
 - Lo ya leído baja al 40% y lo que te gustó al 60%, pero **solo a partir de la próxima
   carga del feed**. Una nota que tocás ahora no se mueve: si el sitio no cargó o te
   quedaste sin señal, tiene que seguir donde estaba cuando volvés. Perderla sin haberla
@@ -96,6 +103,30 @@ Las constantes de arriba de [`src/lib/ranking.ts`](src/lib/ranking.ts):
 Los tests de [`src/lib/ranking.test.ts`](src/lib/ranking.test.ts) verifican que el modelo
 converge, que generaliza, que no contamina categorías ajenas y que los pesos quedan
 acotados.
+
+## Trending 🔥
+
+No existe una API de "lo más leído del mundo". Pero para noticias hay una señal mejor:
+**cuántos medios distintos cubren la misma historia ahora mismo**. Si Variety, Deadline y
+The Guardian publican sobre lo mismo en dos horas, eso *es* lo que está estallando.
+
+[`trending.ts`](src/lib/trending.ts) agrupa las notas de las últimas 30 h por similitud de
+titular (Jaccard sobre tokens, con índice invertido para no comparar todo contra todo) y
+ordena los grupos por cantidad de medios. Cada tarjeta muestra el sello `🔥 N medios`, y
+el representante del grupo es la nota más reciente.
+
+A diferencia del resto del feed, acá **no manda tu perfil**: si algo lo cubren diez
+medios, va arriba aunque no sea lo tuyo. Para eso está «Para vos».
+
+## Instalación
+
+La app ofrece un tutorial paso a paso ([`InstallGuide`](src/components/InstallGuide.tsx))
+que pregunta desde qué navegador entrás y muestra las instrucciones exactas. **No aparece
+si ya estás usando la PWA instalada** (`display-mode: standalone` y el `navigator.standalone`
+viejo de iOS).
+
+Detecta el navegador para presugerirlo, pero decidís vos: la detección por user agent no
+es confiable, sobre todo en iOS donde todo dice ser Safari.
 
 ## Leer sin salir de la app
 

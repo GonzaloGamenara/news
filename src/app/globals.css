@@ -5,15 +5,16 @@
    se aplican con [data-theme=...] en <html>, que pone un script inline antes
    del primer pintado para que no haya un flash del tema anterior. */
 
+/* Papel: blanco cálido, tinta casi negra, acento rojo de diario. */
 :root,
-[data-theme="claro"] {
-  --bg: #f6f6f8;
+[data-theme="papel"] {
+  --bg: #f7f4ef;
   --surface: #ffffff;
-  --surface-2: #eeeef2;
-  --fg: #14141a;
-  --fg-muted: #63636e;
-  --border: #e2e2e8;
-  --accent: 265 85% 55%;
+  --surface-2: #ebe6dd;
+  --fg: #1a1815;
+  --fg-muted: #6b655c;
+  --border: #e0d9cd;
+  --accent: 5 72% 46%;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -28,7 +29,8 @@
   }
 }
 
-[data-theme="oscuro"] {
+/* Carbón: gris neutro, acento violeta. El oscuro "de siempre". */
+[data-theme="carbon"] {
   --bg: #0b0b0f;
   --surface: #16161c;
   --surface-2: #1f1f27;
@@ -38,36 +40,70 @@
   --accent: 265 85% 68%;
 }
 
-/* Negro puro: en pantallas OLED los píxeles apagados no consumen batería. */
+/* Noche: negro puro. En OLED el píxel apagado no consume batería. */
 [data-theme="noche"] {
   --bg: #000000;
-  --surface: #0c0c0e;
-  --surface-2: #17171a;
+  --surface: #0a0a0c;
+  --surface-2: #16161a;
   --fg: #e8e8ec;
-  --fg-muted: #86868f;
-  --border: #1f1f24;
-  --accent: 265 80% 70%;
+  --fg-muted: #7e7e88;
+  --border: #1c1c22;
+  --accent: 190 95% 55%;
 }
 
-/* Cálido y de bajo contraste, para leer largo sin cansar la vista. */
+/* Sepia: cálido y de bajo contraste, para leer largo sin cansar la vista. */
 [data-theme="sepia"] {
-  --bg: #f4ecdf;
-  --surface: #fbf5ea;
-  --surface-2: #ece0cc;
+  --bg: #f2e8d5;
+  --surface: #fbf4e6;
+  --surface-2: #e7dac0;
   --fg: #3b3129;
   --fg-muted: #7a6a58;
-  --border: #ded0b8;
-  --accent: 25 65% 42%;
+  --border: #dbcbaa;
+  --accent: 25 75% 40%;
 }
 
+/* Índigo: azul profundo de medianoche. */
 [data-theme="indigo"] {
-  --bg: #0c1020;
-  --surface: #141a2e;
-  --surface-2: #1d2540;
+  --bg: #0a0e24;
+  --surface: #131936;
+  --surface-2: #1c244b;
   --fg: #e6eaf7;
-  --fg-muted: #8c96b8;
-  --border: #232c4a;
-  --accent: 220 90% 70%;
+  --fg-muted: #8790b8;
+  --border: #222b57;
+  --accent: 217 95% 68%;
+}
+
+/* Bosque: verde oscuro, acento lima. */
+[data-theme="bosque"] {
+  --bg: #081410;
+  --surface: #10201a;
+  --surface-2: #182e26;
+  --fg: #e3f0e8;
+  --fg-muted: #7f9d8e;
+  --border: #1d3830;
+  --accent: 95 70% 55%;
+}
+
+/* Atardecer: ciruela cálido, acento naranja. */
+[data-theme="atardecer"] {
+  --bg: #1a0f16;
+  --surface: #271722;
+  --surface-2: #35202e;
+  --fg: #f7e9ee;
+  --fg-muted: #b08f9e;
+  --border: #3d2634;
+  --accent: 22 95% 58%;
+}
+
+/* Menta: claro y frío, acento teal. La contracara de Papel. */
+[data-theme="menta"] {
+  --bg: #eef6f3;
+  --surface: #ffffff;
+  --surface-2: #dcebe6;
+  --fg: #10201c;
+  --fg-muted: #5a7871;
+  --border: #cbe0d9;
+  --accent: 172 75% 33%;
 }
 
 @theme inline {
