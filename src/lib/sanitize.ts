@@ -1,4 +1,5 @@
 import { parseHTML } from "linkedom";
+import { thumb } from "./images";
 
 /**
  * Limpia el HTML que devuelve Readability antes de inyectarlo en la app.
@@ -90,8 +91,12 @@ export function sanitize(html: string, baseUrl: string): string {
     }
 
     if (tag === "img") {
-      if (!el.getAttribute("src")) el.remove();
+      const src = el.getAttribute("src");
+      if (!src) el.remove();
       else {
+        // Las imágenes de una nota pesan tanto como las del feed: van por el
+        // mismo redimensionador.
+        el.setAttribute("src", thumb(src, 700));
         el.setAttribute("loading", "lazy");
         el.setAttribute("referrerpolicy", "no-referrer");
       }

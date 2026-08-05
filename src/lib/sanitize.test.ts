@@ -52,9 +52,11 @@ describe("sanitize", () => {
     expect(out).toContain("<h2>Subtítulo</h2>");
     expect(out).toContain("<strong>párrafo</strong>");
     expect(out).toContain("<li>uno</li>");
-    expect(out).toContain("https://cdn.example.com/a.jpg");
     expect(out).toContain("Pie");
     expect(out).toContain('loading="lazy"');
+    // La imagen sale redimensionada, con el original adentro del proxy.
+    expect(out).toContain("wsrv.nl");
+    expect(out).toContain(encodeURIComponent("https://cdn.example.com/a.jpg"));
   });
 
   it("borra iframes de trackers y embeds", () => {

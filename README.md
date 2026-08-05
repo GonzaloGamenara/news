@@ -128,6 +128,28 @@ Las traducciones se cachean en el CDN (una semana) y en `localStorage`, así que
 título no se traduce dos veces. Si el servicio falla, se muestran los originales en
 inglés en vez de dejar la tarjeta en blanco.
 
+## Ancho de banda
+
+Pensada para usarse con datos móviles, así que el peso importa. Medido sobre el build de
+producción con imágenes reales de las notas:
+
+| | Antes | Ahora |
+| --- | --- | --- |
+| Documento inicial | 348 KB | **124 KB** |
+| Imágenes (primera pantalla, 15 tarjetas) | 6,4 MB | **539 KB** |
+| Promedio por imagen | 574 KB | **38 KB** |
+| Leer una nota en el lector | 21 KB | 21 KB |
+
+Las imágenes eran el **95% del tráfico**: los feeds publican el original del medio (hasta
+1,8 MB) para mostrarlo en una tarjeta de 350 px. Ahora pasan por
+[wsrv.nl](https://wsrv.nl), que redimensiona y convierte a WebP: **93% menos**. Es gratis,
+no necesita cuenta y no consume la cuota de optimización de imágenes de Vercel.
+
+En viaje, eso baja de ~20 MB a **~2,5 MB** por trayecto (de ~1 GB a ~130 MB por mes).
+
+**Ahorrar datos** en el menú de idioma apaga las imágenes del todo (~300 KB por viaje). Si
+el sistema tiene activado el ahorro de datos, arranca prendido solo.
+
 ## Fuentes
 
 Feeds RSS en [`src/lib/sources.ts`](src/lib/sources.ts), mezcla de español e inglés (unas

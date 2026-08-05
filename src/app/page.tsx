@@ -11,7 +11,9 @@ export default async function Home() {
   const { articles, failed, fetchedAt } = await fetchAll(sourcesFor("para-vos"));
 
   const initial: FeedResponse = {
-    articles: articles.slice(0, 400),
+    // 120 y no 400: van embebidas en el HTML, y 400 lo llevaban a 348 KB. El
+    // ranking necesita un pool para elegir, pero nadie scrollea 400 notas.
+    articles: articles.slice(0, 120),
     fetchedAt,
     failed,
   };

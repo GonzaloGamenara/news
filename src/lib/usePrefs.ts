@@ -8,11 +8,19 @@ const KEY = "news.prefs.v1";
 export type Prefs = {
   /** Qué idiomas mostrar en el feed. */
   lang: LangFilter;
-  /** Traducir al español las notas en inglés (si el navegador puede). */
+  /** Traducir al español las notas en inglés. */
   translate: boolean;
+  /** Sin imágenes. Las imágenes son ~95% del tráfico del feed. */
+  saveData: boolean;
 };
 
-const DEFAULTS: Prefs = { lang: "todo", translate: false };
+const DEFAULTS: Prefs = { lang: "todo", translate: false, saveData: false };
+
+/** ¿El sistema pidió ahorrar datos? (Android/Chrome; en iOS no existe.) */
+function systemSaveData(): boolean {
+  const connection = (navigator as { connection?: { saveData?: boolean } }).connection;
+  return connection?.saveData === true;
+}
 
 // Mismo patrón que el perfil: store externo para que el snapshot del servidor
 // y el del cliente puedan diferir sin romper la hidratación.
@@ -24,12 +32,16 @@ const listeners = new Set<() => void>();
 function read(): Prefs {
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) return DEFAULTS;
+    if (!raw) return { ...DEFAULTS, saveData: systemSaveData() };
 
     const parsed = JSON.parse(raw) as Partial<Prefs>;
     return {
       lang: parsed.lang === "es" || parsed.lang === "en" ? parsed.lang : "todo",
       translate: parsed.translate === true,
+      // Si nunca lo tocaste, seguimos lo que pide el sistema. Una vez que
+      // elegís, manda tu elección.
+      saveData:
+        typeof parsed.saveData === "boolean" ? parsed.saveData : systemSaveData(),
     };
   } catch {
     return DEFAULTS;

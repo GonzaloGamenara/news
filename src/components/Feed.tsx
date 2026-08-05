@@ -316,8 +316,10 @@ export function Feed({ initial }: { initial: FeedResponse }) {
           <LangMenu
             lang={prefs.lang}
             translate={prefs.translate}
+            saveData={prefs.saveData}
             onLang={(lang) => setPrefs({ lang })}
             onTranslate={handleTranslate}
+            onSaveData={(saveData) => setPrefs({ saveData })}
           />
 
           <button
@@ -380,6 +382,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
                     summary={text.summary}
                     reaction={profile.reactions[article.id]?.vote}
                     seen={profile.seen[article.id] !== undefined}
+                    saveData={prefs.saveData}
                     hero={i === 0}
                     onReact={handleReact}
                     onOpen={handleOpen}

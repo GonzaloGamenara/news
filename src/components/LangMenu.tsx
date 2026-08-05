@@ -15,11 +15,20 @@ const LABEL: Record<LangFilter, string> = { todo: "ES/EN", es: "ES", en: "EN" };
 type Props = {
   lang: LangFilter;
   translate: boolean;
+  saveData: boolean;
   onLang: (lang: LangFilter) => void;
   onTranslate: (enabled: boolean) => void;
+  onSaveData: (enabled: boolean) => void;
 };
 
-export function LangMenu({ lang, translate, onLang, onTranslate }: Props) {
+export function LangMenu({
+  lang,
+  translate,
+  saveData,
+  onLang,
+  onTranslate,
+  onSaveData,
+}: Props) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -39,6 +48,7 @@ export function LangMenu({ lang, translate, onLang, onTranslate }: Props) {
       >
         {LABEL[lang]}
         {translate && <span className="ml-1 text-violet-500">↻</span>}
+        {saveData && <span className="ml-1 text-emerald-500">◔</span>}
       </button>
 
       <AnimatePresence>
@@ -83,6 +93,19 @@ export function LangMenu({ lang, translate, onLang, onTranslate }: Props) {
                     <span className="block text-sm font-medium">Traducir al español</span>
                     <span className="block text-xs text-fg-muted">
                       Traduce los títulos y resúmenes en inglés.
+                    </span>
+                  </span>
+                </button>
+
+                <button
+                  onClick={() => onSaveData(!saveData)}
+                  className="flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-surface-2"
+                >
+                  <span className="w-4 pt-0.5 text-violet-500">{saveData ? "✓" : ""}</span>
+                  <span>
+                    <span className="block text-sm font-medium">Ahorrar datos</span>
+                    <span className="block text-xs text-fg-muted">
+                      Sin imágenes. Son el 95% del tráfico.
                     </span>
                   </span>
                 </button>

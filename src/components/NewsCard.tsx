@@ -2,6 +2,7 @@
 
 import { motion, useMotionValue, useTransform, type PanInfo } from "framer-motion";
 import { memo, useState } from "react";
+import { thumb } from "@/lib/images";
 import { CATEGORY_MAP } from "@/lib/sources";
 import type { ScoredArticle } from "@/lib/ranking";
 
@@ -26,6 +27,8 @@ type Props = {
   reaction: 1 | -1 | undefined;
   /** Ya la abriste alguna vez. La marcamos, pero no la escondemos. */
   seen: boolean;
+  /** Modo ahorro: sin imágenes. */
+  saveData: boolean;
   hero: boolean;
   onReact: (article: ScoredArticle, liked: boolean) => void;
   onOpen: (article: ScoredArticle) => void;
@@ -37,6 +40,7 @@ function NewsCardImpl({
   summary,
   reaction,
   seen,
+  saveData,
   hero,
   onReact,
   onOpen,
@@ -58,7 +62,9 @@ function NewsCardImpl({
     else if (power < -SWIPE_THRESHOLD) onReact(article, false);
   };
 
-  const showImage = article.image && !imageFailed;
+  const showImage = article.image && !imageFailed && !saveData;
+  // El hero ocupa el ancho completo; el resto son tarjetas más chicas.
+  const imageSrc = article.image ? thumb(article.image, hero ? 640 : 480) : "";
 
   return (
     <motion.article
@@ -104,7 +110,7 @@ function NewsCardImpl({
             <div className={`relative w-full overflow-hidden ${hero ? "aspect-[16/10]" : "aspect-[2/1]"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={article.image!}
+                src={imageSrc}
                 alt=""
                 loading="lazy"
                 decoding="async"

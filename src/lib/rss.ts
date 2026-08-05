@@ -124,7 +124,8 @@ function toArticle(raw: Record<string, unknown>, source: Source): Article | null
     text(raw.summary) ||
     text(raw.content);
 
-  const summary = stripHtml(rawSummary).slice(0, 320);
+  // 200 y no 320: la tarjeta recorta a tres líneas, el resto era peso muerto.
+  const summary = stripHtml(rawSummary).slice(0, 200);
 
   if (source.match && !source.match.test(`${title} ${summary}`)) return null;
 
