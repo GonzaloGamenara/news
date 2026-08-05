@@ -10,8 +10,19 @@
 const PROXY = "https://wsrv.nl/";
 
 /**
- * @param width ancho de destino en píxeles CSS. Se pide el doble para pantallas
- *   retina, que es lo que tiene cualquier teléfono.
+ * Calidad 60 y no 72: medido sobre 10 imágenes reales, 49 KB → 27 KB de
+ * promedio. A este tamaño en un teléfono la diferencia no se ve, y son 22 KB
+ * por tarjeta que no pagás con datos.
+ *
+ * (Se probó AVIF, que sería ~25% más chico todavía, pero wsrv falló en las 10
+ * imágenes: el encoder tarda demasiado y corta. Si algún día responde, es
+ * cambiar `output`.)
+ */
+const QUALITY = "60";
+
+/**
+ * @param width ancho real en píxeles CSS al que se muestra la imagen. Se pide
+ *   el doble por las pantallas retina; más que eso es tirar datos.
  */
 export function thumb(url: string, width: number): string {
   // Los data: URIs y lo que no sea http(s) no se pueden proxear.
@@ -21,7 +32,7 @@ export function thumb(url: string, width: number): string {
     url,
     w: String(width * 2),
     output: "webp",
-    q: "72",
+    q: QUALITY,
     // `we` = "without enlargement": si el original es más chico, no lo agranda
     // (varias fuentes publican miniaturas de 200 px).
     we: "1",

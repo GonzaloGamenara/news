@@ -149,15 +149,21 @@ export function Feed({ initial }: { initial: FeedResponse }) {
   const ranked: ScoredArticle[] = useMemo(() => {
     if (!entry) return [];
 
+    let pool = entry.articles;
+
+    // "Para vos" mezcla todas las fuentes, así que se filtra por los géneros
+    // que dejaste activos. En una categoría concreta no hace falta.
+    if (category === "para-vos") {
+      pool = pool.filter((a) => prefs.categories.includes(a.category));
+    }
+
     const byLang =
-      prefs.lang === "todo"
-        ? entry.articles
-        : entry.articles.filter((a) => a.lang === prefs.lang);
+      prefs.lang === "todo" ? pool : pool.filter((a) => a.lang === prefs.lang);
 
     // La frescura se mide contra el momento del fetch, no contra "ahora": el
     // ranking queda determinístico y estable mientras no recargues.
     return score(visible(byLang, profile), profile, salt, entry.fetchedAt);
-  }, [entry, profile, salt, prefs.lang]);
+  }, [entry, profile, salt, prefs.lang, prefs.categories, category]);
 
   const shown = useMemo(() => ranked.slice(0, limit), [ranked, limit]);
 
@@ -219,11 +225,16 @@ export function Feed({ initial }: { initial: FeedResponse }) {
       const controller = new AbortController();
       readerFetch.current = controller;
 
+      // Si tenés la traducción prendida y la nota es en inglés, el cuerpo viene
+      // traducido del servidor: leerla completa en español, no solo el título.
+      const translate = prefs.translate && article.lang === "en" ? "&tr=1" : "";
+
       void (async () => {
         try {
-          const res = await fetch(`/api/article?url=${encodeURIComponent(article.url)}`, {
-            signal: controller.signal,
-          });
+          const res = await fetch(
+            `/api/article?url=${encodeURIComponent(article.url)}${translate}`,
+            { signal: controller.signal },
+          );
           const data: ArticleContent = await res.json();
           if (controller.signal.aborted) return;
           setReaderState(
@@ -238,7 +249,7 @@ export function Feed({ initial }: { initial: FeedResponse }) {
         }
       })();
     },
-    [markSeen],
+    [markSeen, prefs.translate],
   );
 
   const closeReader = useCallback(() => {
@@ -426,7 +437,11 @@ export function Feed({ initial }: { initial: FeedResponse }) {
         </main>
       </PullToRefresh>
 
-      <FloatingNav active={category} onChange={changeCategory} />
+      <FloatingNav
+        active={category}
+        enabled={prefs.categories}
+        onChange={changeCategory}
+      />
 
       <Reader
         article={reading}
@@ -446,6 +461,11 @@ export function Feed({ initial }: { initial: FeedResponse }) {
           setPrefs(patch);
           // Prender la traducción tiene que traducir lo que ya está en pantalla.
           if (patch.translate) translateNow();
+          // Si apagaste el género que estabas viendo, el nav lo saca y quedarías
+          // mirando una pantalla sin forma de volver.
+          if (patch.categories && !patch.categories.includes(category)) {
+            changeCategory("para-vos");
+          }
         }}
         onReset={reset}
       />

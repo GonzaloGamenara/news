@@ -4,8 +4,17 @@
   | "videojuegos"
   | "teatro"
   | "libros"
+  | "musica"
+  | "anime"
+  | "comics"
+  | "arte"
   | "tecnologia"
-  | "ciencia";
+  | "ciencia"
+  | "deportes"
+  | "negocios";
+
+/** Temas visuales. `sistema` sigue la preferencia del teléfono. */
+export type ThemeId = "sistema" | "claro" | "oscuro" | "noche" | "sepia" | "indigo";
 
 export type Lang = "es" | "en";
 

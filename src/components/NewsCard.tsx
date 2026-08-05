@@ -66,8 +66,9 @@ function NewsCardImpl({
   };
 
   const showImage = article.image && !imageFailed && !saveData;
-  // El hero ocupa el ancho completo; el resto son tarjetas más chicas.
-  const imageSrc = article.image ? thumb(article.image, hero ? 640 : 480) : "";
+  // Anchos reales: la tarjeta mide ~350 px en un teléfono. Pedir 480/640 era
+  // pagar por píxeles que nadie ve.
+  const imageSrc = article.image ? thumb(article.image, hero ? 400 : 360) : "";
 
   return (
     <motion.article

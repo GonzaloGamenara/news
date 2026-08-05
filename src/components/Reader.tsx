@@ -89,7 +89,12 @@ export function Reader({ article, state, reaction, onClose, onReact }: Props) {
 
           <div ref={scroller} className="flex-1 overflow-y-auto overscroll-contain">
             <div className="mx-auto max-w-2xl px-4 pt-5 pb-40">
-              <h1 className="text-2xl leading-tight font-bold">{article.title}</h1>
+              {/* Si vino traducida, el título traducido llega con el contenido. */}
+              <h1 className="text-2xl leading-tight font-bold">
+                {state.phase === "ready" && state.content.title
+                  ? state.content.title
+                  : article.title}
+              </h1>
 
               {state.phase === "ready" && state.content.byline && (
                 <p className="mt-2 text-sm text-fg-muted">{state.content.byline}</p>

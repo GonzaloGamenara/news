@@ -1,6 +1,12 @@
 @import "tailwindcss";
 
-:root {
+/* ---------------------------------------------------------------- temas
+   `sistema` no fija data-theme y deja que la media query decida. El resto
+   se aplican con [data-theme=...] en <html>, que pone un script inline antes
+   del primer pintado para que no haya un flash del tema anterior. */
+
+:root,
+[data-theme="claro"] {
   --bg: #f6f6f8;
   --surface: #ffffff;
   --surface-2: #eeeef2;
@@ -11,7 +17,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]) {
     --bg: #0b0b0f;
     --surface: #16161c;
     --surface-2: #1f1f27;
@@ -20,6 +26,48 @@
     --border: #26262f;
     --accent: 265 85% 68%;
   }
+}
+
+[data-theme="oscuro"] {
+  --bg: #0b0b0f;
+  --surface: #16161c;
+  --surface-2: #1f1f27;
+  --fg: #f2f2f5;
+  --fg-muted: #9a9aa6;
+  --border: #26262f;
+  --accent: 265 85% 68%;
+}
+
+/* Negro puro: en pantallas OLED los píxeles apagados no consumen batería. */
+[data-theme="noche"] {
+  --bg: #000000;
+  --surface: #0c0c0e;
+  --surface-2: #17171a;
+  --fg: #e8e8ec;
+  --fg-muted: #86868f;
+  --border: #1f1f24;
+  --accent: 265 80% 70%;
+}
+
+/* Cálido y de bajo contraste, para leer largo sin cansar la vista. */
+[data-theme="sepia"] {
+  --bg: #f4ecdf;
+  --surface: #fbf5ea;
+  --surface-2: #ece0cc;
+  --fg: #3b3129;
+  --fg-muted: #7a6a58;
+  --border: #ded0b8;
+  --accent: 25 65% 42%;
+}
+
+[data-theme="indigo"] {
+  --bg: #0c1020;
+  --surface: #141a2e;
+  --surface-2: #1d2540;
+  --fg: #e6eaf7;
+  --fg-muted: #8c96b8;
+  --border: #232c4a;
+  --accent: 220 90% 70%;
 }
 
 @theme inline {

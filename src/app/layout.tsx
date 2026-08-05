@@ -38,6 +38,16 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="es" className={`${geist.variable} h-full antialiased`}>
+      <head>
+        {/* Aplica el tema guardado ANTES del primer pintado. Sin esto se ve un
+            flash del tema por defecto en cada carga. Va inline a propósito:
+            cualquier archivo externo llegaría tarde. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=JSON.parse(localStorage.getItem('news.prefs.v1')||'{}').theme;if(t&&t!=='sistema')document.documentElement.dataset.theme=t}catch(e){}`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">
         {children}
         <RegisterSW />

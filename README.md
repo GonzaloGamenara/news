@@ -115,10 +115,25 @@ Dos cosas que no son obvias:
 
 Si una nota tiene muro de pago o no se puede extraer, el lector lo dice y ofrece el link.
 
+## Ajustes
+
+Todo vive en un solo panel (el botón `✦` del header): perfil, tema, géneros, idioma,
+datos y sincronización.
+
+- **Tema**: sistema, claro, oscuro, noche (negro puro para OLED), sepia e índigo. Se
+  aplica con `data-theme` en `<html>` y un script inline en
+  [`layout.tsx`](src/app/layout.tsx) que corre antes del primer pintado — sin eso se ve un
+  flash del tema anterior en cada carga.
+- **Géneros**: qué categorías aparecen en el nav. Las apagadas tampoco entran en «Para
+  vos». «Para vos» no se puede apagar.
+
 ## Idioma
 
-El botón `ES/EN` del header filtra el feed por idioma. La opción **Traducir al español**
-traduce títulos y resúmenes vía [`/api/translate`](src/app/api/translate/route.ts).
+El filtro de idioma y la opción **Traducir al español** están en Ajustes. Traduce títulos
+y resúmenes vía [`/api/translate`](src/app/api/translate/route.ts), y **también el cuerpo
+completo** de la nota en el lector (`/api/article?tr=1`): se recorren los nodos de texto
+del HTML ya saneado, así los enlaces y el formato sobreviven a la traducción. Los lotes
+van en paralelo de a 5, que baja una nota larga de 7 s a ~2 s.
 
 Se hace en el servidor a propósito. La Translator API on-device de Chrome parecía la
 opción elegante, pero **en iOS toda PWA corre sobre WebKit** —incluso la que instalás
@@ -156,22 +171,36 @@ daría uno que no entrenó nadie.
 Pensada para usarse con datos móviles, así que el peso importa. Medido sobre el build de
 producción con imágenes reales de las notas:
 
-| | Antes | Ahora |
-| --- | --- | --- |
-| Documento inicial | 348 KB | **124 KB** |
-| Imágenes (primera pantalla, 15 tarjetas) | 6,4 MB | **539 KB** |
-| Promedio por imagen | 574 KB | **38 KB** |
-| Leer una nota en el lector | 21 KB | 21 KB |
+| | Original | Primera pasada | Ahora |
+| --- | --- | --- | --- |
+| Documento inicial | 348 KB | 124 KB | **124 KB** |
+| Promedio por imagen | 574 KB | 49 KB | **27 KB** |
+| Imágenes (primera pantalla) | 6,4 MB | 539 KB | **~400 KB** |
+| Leer una nota | 21 KB | 21 KB | 21 KB |
 
 Las imágenes eran el **95% del tráfico**: los feeds publican el original del medio (hasta
-1,8 MB) para mostrarlo en una tarjeta de 350 px. Ahora pasan por
-[wsrv.nl](https://wsrv.nl), que redimensiona y convierte a WebP: **93% menos**. Es gratis,
-no necesita cuenta y no consume la cuota de optimización de imágenes de Vercel.
+1,8 MB) para mostrarlo en una tarjeta de 350 px. Pasan por [wsrv.nl](https://wsrv.nl), que
+redimensiona y convierte a WebP. Es gratis, no necesita cuenta y no consume la cuota de
+optimización de imágenes de Vercel.
 
-En viaje, eso baja de ~20 MB a **~2,5 MB** por trayecto (de ~1 GB a ~130 MB por mes).
+Tres ajustes medidos sobre imágenes reales:
 
-**Ahorrar datos** en el menú de idioma apaga las imágenes del todo (~300 KB por viaje). Si
-el sistema tiene activado el ahorro de datos, arranca prendido solo.
+- **Ancho real, no inflado.** Se pedía 960 px para una tarjeta de 350. Ahora se pide el
+  doble del ancho real (720) por las pantallas retina, y nada más.
+- **Calidad 60 en vez de 72.** A este tamaño la diferencia no se ve: 49 KB → 27 KB.
+- **Cache en el service worker.** Las imágenes ya redimensionadas no cambian nunca, así
+  que van cache-first con un techo de 300 (~8 MB). Volver a abrir la app en el mismo
+  viaje no vuelve a bajar nada.
+
+Se probó AVIF, que sería ~25% más chico todavía, pero wsrv falló en las 10 imágenes de
+prueba: el encoder tarda demasiado y corta. Si algún día responde, es cambiar `output` en
+[`images.ts`](src/lib/images.ts).
+
+En viaje: de ~20 MB a **~1,5 MB** por trayecto, y menos todavía a partir del segundo día
+por el cache.
+
+**Ahorrar datos** (Ajustes → Datos) apaga las imágenes del todo. Si el sistema tiene
+activado el ahorro de datos, arranca prendido solo.
 
 ## Fuentes
 

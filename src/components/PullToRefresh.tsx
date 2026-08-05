@@ -23,6 +23,17 @@ export function PullToRefresh({ onRefresh, children }: Props) {
 
   useEffect(() => {
     const onTouchStart = (e: TouchEvent) => {
+      // Si el gesto empezó adentro de una hoja (ajustes, lector), es de ella:
+      // sin esto, arrastrar el menú para cerrarlo movía el feed de atrás y
+      // disparaba una recarga.
+      // Con cualquier hoja abierta el gesto no es nuestro, ni siquiera si
+      // tocaste el fondo oscurecido.
+      const target = e.target as Element | null;
+      if (document.querySelector('[role="dialog"]') || target?.closest?.('[role="dialog"]')) {
+        start.current = null;
+        return;
+      }
+
       // Solo capturamos el gesto si ya estamos arriba de todo; si no, es scroll.
       start.current = window.scrollY <= 0 ? e.touches[0].clientY : null;
     };

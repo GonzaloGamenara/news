@@ -2,7 +2,8 @@ import { Readability } from "@mozilla/readability";
 import { parseHTML } from "linkedom";
 import { NextResponse } from "next/server";
 import { isReadable } from "@/lib/reader";
-import { sanitize } from "@/lib/sanitize";
+import { sanitize, translateHtml } from "@/lib/sanitize";
+import { translateTexts } from "@/lib/translateServer";
 import type { ArticleContent, ArticleFailure } from "@/lib/types";
 
 export const runtime = "nodejs";
@@ -20,7 +21,12 @@ function fail(reason: ArticleFailure, status = 200) {
 }
 
 export async function GET(request: Request) {
-  const target = new URL(request.url).searchParams.get("url");
+  const params = new URL(request.url).searchParams;
+  const target = params.get("url");
+  // El lector pide la nota traducida cuando tenés la traducción prendida y la
+  // fuente es en inglés. Antes solo se traducían título y resumen, así que
+  // abrías una nota "en español" y el cuerpo estaba en inglés.
+  const wantsSpanish = params.get("tr") === "1";
 
   if (!target) return fail("invalid", 400);
   // No es una restricción cosmética: sin allowlist esto sería un proxy abierto.
@@ -51,12 +57,26 @@ export async function GET(request: Request) {
     const text = parsed?.textContent?.trim() ?? "";
     if (!parsed?.content || text.length < MIN_CHARS) return fail("too-short");
 
+    let safeHtml = sanitize(parsed.content, target);
+    let title = parsed.title ?? "";
+
+    if (wantsSpanish) {
+      // Se traduce después de sanear: así lo que se traduce es exactamente lo
+      // que se va a mostrar, y no se reintroduce marcado sin revisar.
+      const [translatedHtml, [translatedTitle]] = await Promise.all([
+        translateHtml(safeHtml, translateTexts),
+        translateTexts([title]),
+      ]);
+      safeHtml = translatedHtml;
+      title = translatedTitle ?? title;
+    }
+
     const body: ArticleContent = {
       ok: true,
-      title: parsed.title ?? "",
+      title,
       byline: parsed.byline ?? null,
       siteName: parsed.siteName ?? null,
-      html: sanitize(parsed.content, target),
+      html: safeHtml,
       minutes: Math.max(1, Math.round(text.split(/\s+/).length / WORDS_PER_MINUTE)),
     };
 

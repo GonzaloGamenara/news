@@ -3,9 +3,10 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { topTopics, type Profile } from "@/lib/ranking";
+import { CATEGORIES } from "@/lib/sources";
 import { adoptDevice, deviceId, type SyncState } from "@/lib/useSync";
 import type { Prefs } from "@/lib/usePrefs";
-import type { LangFilter } from "@/lib/types";
+import type { LangFilter, ThemeId } from "@/lib/types";
 
 type Props = {
   open: boolean;
@@ -16,6 +17,16 @@ type Props = {
   onPrefs: (patch: Partial<Prefs>) => void;
   onReset: () => void;
 };
+
+/** Muestras de color para elegir el tema mirando, no leyendo. */
+const THEMES: Array<{ id: ThemeId; label: string; bg: string; surface: string; accent: string }> = [
+  { id: "sistema", label: "Sistema", bg: "linear-gradient(135deg,#f6f6f8 50%,#0b0b0f 50%)", surface: "#8888aa", accent: "#8b5cf6" },
+  { id: "claro", label: "Claro", bg: "#f6f6f8", surface: "#ffffff", accent: "#7c3aed" },
+  { id: "oscuro", label: "Oscuro", bg: "#0b0b0f", surface: "#16161c", accent: "#a78bfa" },
+  { id: "noche", label: "Noche", bg: "#000000", surface: "#0c0c0e", accent: "#a78bfa" },
+  { id: "sepia", label: "Sepia", bg: "#f4ecdf", surface: "#fbf5ea", accent: "#b45309" },
+  { id: "indigo", label: "Índigo", bg: "#0c1020", surface: "#141a2e", accent: "#60a5fa" },
+];
 
 const LANGS: Array<{ id: LangFilter; label: string }> = [
   { id: "todo", label: "Todo" },
@@ -114,6 +125,78 @@ export function SettingsSheet({
 
                 <Topics title="Te interesa" topics={liked} tone="positive" />
                 <Topics title="Preferís evitar" topics={disliked} tone="negative" />
+              </Section>
+
+              {/* ---------------- Tema ---------------- */}
+              <Section title="Tema">
+                <div className="grid grid-cols-3 gap-2">
+                  {THEMES.map((theme) => (
+                    <motion.button
+                      key={theme.id}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => onPrefs({ theme: theme.id })}
+                      className={`overflow-hidden rounded-xl border-2 p-2 text-left transition-colors ${
+                        prefs.theme === theme.id ? "border-violet-500" : "border-border"
+                      }`}
+                    >
+                      {/* Muestra de la paleta real, para elegir con el ojo. */}
+                      <span
+                        className="mb-2 flex h-9 items-end gap-1 rounded-lg p-1.5"
+                        style={{ background: theme.bg }}
+                      >
+                        <span
+                          className="h-full flex-1 rounded"
+                          style={{ background: theme.surface }}
+                        />
+                        <span className="h-2 w-2 rounded-full" style={{ background: theme.accent }} />
+                      </span>
+                      <span className="block text-xs font-medium">{theme.label}</span>
+                    </motion.button>
+                  ))}
+                </div>
+              </Section>
+
+              {/* ---------------- Géneros ---------------- */}
+              <Section title="Géneros en el menú">
+                <div className="flex flex-wrap gap-2">
+                  {CATEGORIES.filter((c) => c.id !== "para-vos").map((category) => {
+                    const active = prefs.categories.includes(category.id);
+                    return (
+                      <motion.button
+                        key={category.id}
+                        whileTap={{ scale: 0.94 }}
+                        onClick={() =>
+                          onPrefs({
+                            categories: active
+                              ? prefs.categories.filter((c) => c !== category.id)
+                              : [...prefs.categories, category.id],
+                          })
+                        }
+                        aria-pressed={active}
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                          active
+                            ? "border-transparent font-medium"
+                            : "border-border text-fg-muted"
+                        }`}
+                        style={
+                          active
+                            ? {
+                                background: `hsl(${category.accent} / 0.16)`,
+                                color: `hsl(${category.accent})`,
+                              }
+                            : undefined
+                        }
+                      >
+                        <span aria-hidden>{category.emoji}</span>
+                        {category.label}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+                <p className="mt-3 text-xs text-fg-muted">
+                  Los apagados no aparecen en el nav ni en «Para vos». «Para vos» siempre
+                  está.
+                </p>
               </Section>
 
               {/* ---------------- Idioma ---------------- */}

@@ -7,10 +7,13 @@ import type { CategoryId } from "@/lib/types";
 
 type Props = {
   active: CategoryId;
+  /** Géneros que el usuario dejó activos, en el orden del catálogo. */
+  enabled: CategoryId[];
   onChange: (id: CategoryId) => void;
 };
 
-export function FloatingNav({ active, onChange }: Props) {
+export function FloatingNav({ active, enabled, onChange }: Props) {
+  const visible = CATEGORIES.filter((c) => enabled.includes(c.id));
   const scroller = useRef<HTMLDivElement>(null);
   const refs = useRef(new Map<CategoryId, HTMLButtonElement>());
 
@@ -30,7 +33,7 @@ export function FloatingNav({ active, onChange }: Props) {
         ref={scroller}
         className="no-scrollbar flex max-w-full gap-1 overflow-x-auto rounded-full border border-border/70 bg-surface/80 p-1.5 shadow-lg shadow-black/10 backdrop-blur-xl"
       >
-        {CATEGORIES.map((category) => {
+        {visible.map((category) => {
           const isActive = category.id === active;
           return (
             <button

@@ -8,9 +8,16 @@
  *    cacheadas y se actualizan solas por atrás.
  */
 
-const VERSION = "titular-v1";
+const VERSION = "titular-v2";
 const SHELL = `${VERSION}-shell`;
 const DATA = `${VERSION}-data`;
+const IMAGES = `${VERSION}-img`;
+
+/**
+ * Techo del cache de imágenes. A ~27 KB cada una son unos 8 MB de disco, y
+ * evita volver a bajar las mismas fotos cada vez que abrís la app en el viaje.
+ */
+const IMAGE_LIMIT = 300;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -34,7 +41,16 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
 
   const url = new URL(request.url);
-  if (url.origin !== self.location.origin) return; // Imágenes de terceros: al navegador.
+
+  // Las imágenes ya vienen redimensionadas por wsrv y no cambian nunca:
+  // cache-first es exactamente lo que corresponde, y es el ahorro más grande
+  // cuando volvés a abrir la app en el mismo viaje.
+  if (url.hostname === "wsrv.nl") {
+    event.respondWith(cacheImage(request));
+    return;
+  }
+
+  if (url.origin !== self.location.origin) return; // Otros terceros: al navegador.
 
   if (url.pathname.startsWith("/api/feed")) {
     event.respondWith(staleWhileRevalidate(request));
@@ -50,6 +66,33 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(request));
   }
 });
+
+async function cacheImage(request) {
+  const cache = await caches.open(IMAGES);
+  const hit = await cache.match(request);
+  if (hit) return hit;
+
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      await cache.put(request, response.clone());
+      void trimImages(cache);
+    }
+    return response;
+  } catch {
+    // Sin señal y sin cache: la tarjeta se muestra sin imagen.
+    return Response.error();
+  }
+}
+
+/** FIFO simple: las claves salen en orden de inserción. */
+async function trimImages(cache) {
+  const keys = await cache.keys();
+  if (keys.length <= IMAGE_LIMIT) return;
+  for (const key of keys.slice(0, keys.length - IMAGE_LIMIT)) {
+    await cache.delete(key);
+  }
+}
 
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(DATA);

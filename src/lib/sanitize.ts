@@ -46,6 +46,50 @@ function safeUrl(value: string, base: string): string | null {
   }
 }
 
+/**
+ * Traduce el texto visible de un HTML ya saneado, conservando el marcado.
+ *
+ * Se recorren los nodos de texto en vez del HTML crudo: así los enlaces, las
+ * negritas y los pies de foto siguen en su lugar después de traducir.
+ */
+export async function translateHtml(
+  html: string,
+  translate: (texts: string[]) => Promise<string[]>,
+): Promise<string> {
+  const { document } = parseHTML(`<div id="root">${html}</div>`);
+  const root = document.getElementById("root");
+  if (!root) return html;
+
+  const nodes: { node: { textContent: string | null }; text: string }[] = [];
+
+  const walk = (element: { childNodes: ArrayLike<unknown> }) => {
+    for (const child of Array.from(element.childNodes) as {
+      nodeType: number;
+      textContent: string | null;
+      childNodes?: ArrayLike<unknown>;
+    }[]) {
+      if (child.nodeType === 3) {
+        const text = child.textContent ?? "";
+        // Los fragmentos de una o dos letras (espacios, comas sueltas entre
+        // etiquetas) no se mandan a traducir: gastan lote y vuelven igual.
+        if (text.trim().length > 2) nodes.push({ node: child, text });
+      } else if (child.childNodes) {
+        walk(child as { childNodes: ArrayLike<unknown> });
+      }
+    }
+  };
+
+  walk(root);
+  if (nodes.length === 0) return html;
+
+  const translated = await translate(nodes.map((n) => n.text));
+  nodes.forEach((n, i) => {
+    n.node.textContent = translated[i] ?? n.text;
+  });
+
+  return root.innerHTML;
+}
+
 export function sanitize(html: string, baseUrl: string): string {
   const { document } = parseHTML(`<div id="root">${html}</div>`);
   const root = document.getElementById("root");

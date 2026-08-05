@@ -6,8 +6,25 @@ export const CATEGORIES: Category[] = [
   { id: "videojuegos", label: "Videojuegos", emoji: "🎮", accent: "155 65% 45%" },
   { id: "teatro", label: "Teatro", emoji: "🎭", accent: "28 90% 58%" },
   { id: "libros", label: "Libros", emoji: "📚", accent: "200 85% 52%" },
+  { id: "musica", label: "Música", emoji: "🎵", accent: "320 75% 58%" },
+  { id: "anime", label: "Anime", emoji: "🌸", accent: "340 80% 65%" },
+  { id: "comics", label: "Cómics", emoji: "💥", accent: "45 90% 50%" },
+  { id: "arte", label: "Arte y diseño", emoji: "🎨", accent: "175 65% 42%" },
   { id: "tecnologia", label: "Tecnología", emoji: "⚡", accent: "225 85% 62%" },
   { id: "ciencia", label: "Ciencia", emoji: "🔬", accent: "300 60% 58%" },
+  { id: "deportes", label: "Deportes", emoji: "⚽", accent: "130 60% 42%" },
+  { id: "negocios", label: "Economía", emoji: "📈", accent: "15 80% 52%" },
+];
+
+/** Las que vienen activas si nunca tocaste el selector de géneros. */
+export const DEFAULT_CATEGORIES: CategoryId[] = [
+  "para-vos",
+  "cine",
+  "videojuegos",
+  "teatro",
+  "libros",
+  "tecnologia",
+  "ciencia",
 ];
 
 export const CATEGORY_MAP = new Map<CategoryId, Category>(
@@ -123,6 +140,43 @@ export const SOURCES: Source[] = [
   { id: "eureka", name: "Eureka", url: "https://danielmarin.naukas.com/feed/", category: "ciencia", lang: "es" },
   { id: "muyinteresante", name: "Muy Interesante", url: "https://www.muyinteresante.com/feed/", category: "ciencia", lang: "es" },
   { id: "elpais-salud", name: "El País Salud", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/salud-y-bienestar/portada", category: "ciencia", lang: "es" },
+
+  // ---------- MÚSICA ----------
+  { id: "pitchfork", name: "Pitchfork", url: "https://pitchfork.com/feed/feed-news/rss", category: "musica", lang: "en" },
+  { id: "nme", name: "NME", url: "https://www.nme.com/news/music/feed", category: "musica", lang: "en" },
+  { id: "stereogum", name: "Stereogum", url: "https://www.stereogum.com/feed/", category: "musica", lang: "en" },
+  { id: "consequence", name: "Consequence", url: "https://consequence.net/feed/", category: "musica", lang: "en" },
+  { id: "guardian-music", name: "The Guardian Music", url: "https://www.theguardian.com/music/rss", category: "musica", lang: "en" },
+  { id: "indiehoy", name: "Indie Hoy", url: "https://indiehoy.com/feed/", category: "musica", lang: "es" },
+  { id: "jenesaispop", name: "Jenesaispop", url: "https://jenesaispop.com/feed/", category: "musica", lang: "es" },
+  { id: "mondosonoro", name: "Mondo Sonoro", url: "https://www.mondosonoro.com/feed/", category: "musica", lang: "es" },
+
+  // ---------- ANIME ----------
+  { id: "ann", name: "Anime News Network", url: "https://www.animenewsnetwork.com/all/rss.xml", category: "anime", lang: "en" },
+  { id: "animesenpai", name: "Anime Senpai", url: "https://animesenpai.net/feed/", category: "anime", lang: "es" },
+
+  // ---------- CÓMICS ----------
+  { id: "cbr", name: "CBR", url: "https://www.cbr.com/feed/", category: "comics", lang: "en" },
+  { id: "comicbook", name: "ComicBook", url: "https://comicbook.com/feed/", category: "comics", lang: "en" },
+  { id: "bleedingcool", name: "Bleeding Cool", url: "https://bleedingcool.com/feed/", category: "comics", lang: "en" },
+  { id: "zonanegativa", name: "Zona Negativa", url: "https://www.zonanegativa.com/feed/", category: "comics", lang: "es" },
+
+  // ---------- ARTE Y DISEÑO ----------
+  { id: "colossal", name: "Colossal", url: "https://www.thisiscolossal.com/feed/", category: "arte", lang: "en" },
+  { id: "designboom", name: "Designboom", url: "https://www.designboom.com/feed/", category: "arte", lang: "en" },
+  { id: "hyperallergic", name: "Hyperallergic", url: "https://hyperallergic.com/feed/", category: "arte", lang: "en" },
+  { id: "guardian-art", name: "The Guardian Art", url: "https://www.theguardian.com/artanddesign/rss", category: "arte", lang: "en" },
+  { id: "domestika", name: "Domestika", url: "https://www.domestika.org/es/blog.rss", category: "arte", lang: "es" },
+
+  // ---------- DEPORTES ----------
+  { id: "guardian-sport", name: "The Guardian Sport", url: "https://www.theguardian.com/sport/rss", category: "deportes", lang: "en" },
+  { id: "ole", name: "Olé", url: "https://www.ole.com.ar/rss/", category: "deportes", lang: "es" },
+  { id: "marca", name: "Marca", url: "https://e00-marca.uecdn.es/rss/portada.xml", category: "deportes", lang: "es" },
+
+  // ---------- ECONOMÍA ----------
+  { id: "guardian-business", name: "The Guardian Business", url: "https://www.theguardian.com/uk/business/rss", category: "negocios", lang: "en" },
+  { id: "infobae-economia", name: "Infobae Economía", url: "https://www.infobae.com/arc/outboundfeeds/rss/category/economia/?outputType=xml", category: "negocios", lang: "es" },
+  { id: "elpais-economia", name: "El País Economía", url: "https://feeds.elpais.com/mrss-s/pages/ep/site/elpais.com/section/economia/portada", category: "negocios", lang: "es" },
 ];
 
 export const SOURCE_MAP = new Map(SOURCES.map((s) => [s.id, s]));

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useSyncExternalStore } from "react";
-import type { LangFilter } from "./types";
+import { CATEGORIES, DEFAULT_CATEGORIES } from "./sources";
+import type { CategoryId, LangFilter, ThemeId } from "./types";
 
 const KEY = "news.prefs.v1";
 
@@ -12,9 +13,28 @@ export type Prefs = {
   translate: boolean;
   /** Sin imágenes. Las imágenes son ~95% del tráfico del feed. */
   saveData: boolean;
+  theme: ThemeId;
+  /** Géneros visibles en el nav. Siempre incluye "para-vos". */
+  categories: CategoryId[];
 };
 
-const DEFAULTS: Prefs = { lang: "todo", translate: false, saveData: false };
+const DEFAULTS: Prefs = {
+  lang: "todo",
+  translate: false,
+  saveData: false,
+  theme: "sistema",
+  categories: DEFAULT_CATEGORIES,
+};
+
+const THEMES = new Set<ThemeId>(["sistema", "claro", "oscuro", "noche", "sepia", "indigo"]);
+const VALID_CATEGORIES = new Set<string>(CATEGORIES.map((c) => c.id));
+
+/** Aplica el tema al documento. El mismo atributo que pone el script inline. */
+function applyTheme(theme: ThemeId): void {
+  if (typeof document === "undefined") return;
+  if (theme === "sistema") delete document.documentElement.dataset.theme;
+  else document.documentElement.dataset.theme = theme;
+}
 
 /** ¿El sistema pidió ahorrar datos? (Android/Chrome; en iOS no existe.) */
 function systemSaveData(): boolean {
@@ -35,6 +55,13 @@ function read(): Prefs {
     if (!raw) return { ...DEFAULTS, saveData: systemSaveData() };
 
     const parsed = JSON.parse(raw) as Partial<Prefs>;
+
+    // Se filtra contra el catálogo: si en una versión futura desaparece un
+    // género, el storage viejo no deja el nav apuntando a la nada.
+    const categories = Array.isArray(parsed.categories)
+      ? parsed.categories.filter((c) => VALID_CATEGORIES.has(c))
+      : DEFAULT_CATEGORIES;
+
     return {
       lang: parsed.lang === "es" || parsed.lang === "en" ? parsed.lang : "todo",
       translate: parsed.translate === true,
@@ -42,6 +69,11 @@ function read(): Prefs {
       // elegís, manda tu elección.
       saveData:
         typeof parsed.saveData === "boolean" ? parsed.saveData : systemSaveData(),
+      theme: parsed.theme && THEMES.has(parsed.theme) ? parsed.theme : "sistema",
+      // "Para vos" no se puede apagar: es el feed principal.
+      categories: categories.includes("para-vos")
+        ? categories
+        : ["para-vos", ...categories],
     };
   } catch {
     return DEFAULTS;
@@ -67,6 +99,8 @@ export const onPrefsChange = subscribe;
 /** Reemplaza las preferencias (lo usa la sincronización). */
 export function replacePrefs(next: Prefs): void {
   snapshot = next;
+  // Adoptar el perfil de otro dispositivo también trae su tema.
+  applyTheme(next.theme);
   for (const listener of listeners) listener();
   try {
     window.localStorage.setItem(KEY, JSON.stringify(next));
@@ -80,6 +114,7 @@ export function usePrefs() {
 
   const set = useCallback((patch: Partial<Prefs>) => {
     snapshot = { ...getSnapshot(), ...patch };
+    if (patch.theme) applyTheme(patch.theme);
     for (const listener of listeners) listener();
     try {
       window.localStorage.setItem(KEY, JSON.stringify(snapshot));
